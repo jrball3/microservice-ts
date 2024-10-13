@@ -1,4 +1,4 @@
-import { Dependencies } from '../dependencies';
+import { Dependencies } from './dependencies';
 import { RequestContext } from './request-context';
 
 /**

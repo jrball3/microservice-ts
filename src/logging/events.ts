@@ -10,6 +10,6 @@ import * as events from '../events';
 export const logEvent = (logger: Logger) => (logLevel: LogLevel, event: events.Event): void => {
   const eventData = { ...event, logLevel };
   const logMessage = JSON.stringify(eventData);
-  const logFn = logger[logLevel];
-  logFn.bind(logger)(logMessage);
+  const logFn = logger.log.bind(logger);
+  logFn(logLevel, logMessage);
 };

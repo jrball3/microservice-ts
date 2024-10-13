@@ -1,13 +1,12 @@
 import { assert } from 'chai';
 import express from 'express';
-import nodehttp from 'http';
 import request from 'supertest';
-import { http, logger, microservice } from '../src';
+import { http, logger } from '../src';
 import * as configNS from '../src/config';
-import { Dependencies } from '../src/dependencies';
+import * as microserviceNS from '../src/microservice';
 
 describe('Express http server', () => {
-  let server: nodehttp.Server;
+  let microservice: microserviceNS.Microservice;
 
   before('creates a server', () => {
     const config: configNS.MicroserviceConfig = {
@@ -182,19 +181,23 @@ describe('Express http server', () => {
           },
         ],
       },
-    };
-    const deps: Dependencies = {
-      logger: console,
+      logging: {
+        provider: 'console',
+        level: logger.LogLevel.TRACE,
+      },
     };
     const app = express();
-    const buildServer = http.providers.express.server.createBuildFn(app);
-    const expressProvider = http.providers.registry.createProvider(buildServer);
+    const buildExpressServer = http.providers.express.server.createBuildFn(app);
+    const expressProvider = http.providers.registry.createProvider(buildExpressServer);
     http.providers.registry.register('express', expressProvider);
-    server = microservice.build(deps)(config);
+    const buildLogger = logger.providers.console.buildLogger;
+    const loggerProvider = logger.providers.console.createProvider(buildLogger);
+    logger.providers.registry.register('console', loggerProvider);
+    microservice = microserviceNS.start(config);
   });
 
-  after('stops the server', (done) => {
-    server.close(done);
+  after('stops the server', () => {
+    microserviceNS.stop(microservice);
   });
 
   it('get responds with Hello, world!', async () => {

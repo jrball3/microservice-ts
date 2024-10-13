@@ -1,5 +1,5 @@
 import express from 'express';
-import { Dependencies } from '../../../dependencies';
+import { Dependencies } from '../../dependencies';
 import * as events from '../../../events';
 import * as logging from '../../../logging';
 import * as configNS from '../../config';

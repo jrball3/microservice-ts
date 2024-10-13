@@ -2,10 +2,10 @@
  * A log level
  */
 export enum LogLevel {
-  DEBUG = 'debug',
-  INFO = 'info',
-  WARN = 'warn',
   ERROR = 'error',
+  WARN = 'warn',
+  INFO = 'info',
+  DEBUG = 'debug',
   TRACE = 'trace',
 }
 
@@ -13,6 +13,7 @@ export enum LogLevel {
  * A logger
  */
 export type Logger = {
+  log: (logLevel: LogLevel, message: string) => void;
   info: (message: string) => void;
   error: (message: string) => void;
   warn: (message: string) => void;

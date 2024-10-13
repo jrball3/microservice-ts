@@ -1,4 +1,4 @@
-import * as logger from './logging';
+import * as logger from '../logging';
 
 /**
  * Microservice dependencies

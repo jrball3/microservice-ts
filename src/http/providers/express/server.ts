@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { Dependencies } from '../../../dependencies';
+import { Dependencies } from '../../dependencies';
 import * as configNS from '../../config';
 import { BuildServerFn } from '../registry';
 import * as routes from './routes';

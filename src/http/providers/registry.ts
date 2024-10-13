@@ -1,5 +1,5 @@
 import nodehttp from 'http';
-import { Dependencies } from '../../dependencies';
+import { Dependencies } from '../dependencies';
 import { HttpConfig } from '../config';
 
 /**

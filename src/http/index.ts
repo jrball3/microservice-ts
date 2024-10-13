@@ -1,4 +1,4 @@
-export * from '../dependencies';
+export * from './dependencies';
 export * as config from './config';
 export * from './errors';
 export * as method from './method';
