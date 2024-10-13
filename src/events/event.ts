@@ -1,7 +1,13 @@
+/**
+ * Event data
+ */
 export type EventData = {
   [key: string]: unknown;
 }
 
+/**
+ * An event
+ */
 export type Event = {
   eventType: string;
   eventName: string;
@@ -11,6 +17,9 @@ export type Event = {
 
 const generateTimestamp = () => new Date();
 
+/**
+ * Event parameters
+ */
 export type EventParams = {
   eventType: string;
   eventName: string;
@@ -18,8 +27,12 @@ export type EventParams = {
   eventTimestamp?: Date;
 }
 
+/**
+ * Creates an event
+ * @param params - The event parameters
+ * @returns An event
+ */
 export const event = (params: EventParams): Event => ({
   eventTimestamp: generateTimestamp(),
   ...params,
 });
-

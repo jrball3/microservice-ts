@@ -1,20 +1,20 @@
 import { assert } from 'chai';
 import express from 'express';
-import request from 'supertest';
 import nodehttp from 'http';
-import { http, logger } from '../src';
+import request from 'supertest';
+import { http, logger, microservice } from '../src';
 import * as config from '../src/config';
 import { Dependencies } from '../src/dependencies';
 
 describe('Express http server', () => {
-  let app: express.Application;
   let server: nodehttp.Server;
 
   before('creates a server', () => {
     const config: config.MicroserviceConfig = {
       http: {
-        enabled: true,
+        provider: 'express',
         host: 'localhost',
+        port: 3000,
         logging: {
           logRequests: {
             get: logger.LogLevel.INFO,
@@ -29,7 +29,6 @@ describe('Express http server', () => {
             500: logger.LogLevel.ERROR,
           },
         },
-        port: 3000,
         routes: [
           {
             path: '/200',
@@ -184,13 +183,14 @@ describe('Express http server', () => {
         ],
       },
     };
-    app = express();
     const deps: Dependencies = {
       logger: console,
-      eventLogger: logger.events.build(console)
     };
-    http.routes.express.apply(deps)(config.http)(app);
-    server = http.server.express.start(config.http)(app);
+    const app = express();
+    const buildServer = http.providers.express.server.createBuildFn(app);
+    const expressProvider = http.providers.registry.createProvider(buildServer);
+    http.providers.registry.register('express', expressProvider);
+    server = microservice.build(deps)(config);
   });
 
   after('stops the server', (done) => {
@@ -198,92 +198,92 @@ describe('Express http server', () => {
   });
 
   it('get responds with Hello, world!', async () => {
-    const response = await request(app).get('/200');
+    const response = await request('localhost:3000').get('/200');
 
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, { message: 'Hello, world!' });
   });
 
   it('get responds with 400', async () => {
-    const response = await request(app).get('/400');
+    const response = await request('localhost:3000').get('/400');
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, { message: 'Bad request' });
   });
 
   it('get responds with 500', async () => {
-    const response = await request(app).get('/500');
+    const response = await request('localhost:3000').get('/500');
     assert.equal(response.status, 500);
     assert.deepEqual(response.body, { message: 'Internal server error' });
   });
 
   it('post responds with Hello, world!', async () => {
-    const response = await request(app).post('/200');
+    const response = await request('localhost:3000').post('/200');
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, { message: 'Hello, world!' });
   });
 
   it('post responds with 400', async () => {
-    const response = await request(app).post('/400');
+    const response = await request('localhost:3000').post('/400');
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, { message: 'Bad request' });
   });
 
   it('post responds with 500', async () => {
-    const response = await request(app).post('/500');
+    const response = await request('localhost:3000').post('/500');
     assert.equal(response.status, 500);
     assert.deepEqual(response.body, { message: 'Internal server error' });
   });
 
   it('put responds with Hello, world!', async () => {
-    const response = await request(app).put('/200');
+    const response = await request('localhost:3000').put('/200');
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, { message: 'Hello, world!' });
   });
 
   it('put responds with 400', async () => {
-    const response = await request(app).put('/400');
+    const response = await request('localhost:3000').put('/400');
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, { message: 'Bad request' });
   });
 
   it('put responds with 500', async () => {
-    const response = await request(app).put('/500');
+    const response = await request('localhost:3000').put('/500');
     assert.equal(response.status, 500);
     assert.deepEqual(response.body, { message: 'Internal server error' });
   });
 
   it('patch responds with Hello, world!', async () => {
-    const response = await request(app).patch('/200');
+    const response = await request('localhost:3000').patch('/200');
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, { message: 'Hello, world!' });
   });
 
   it('patch responds with 400', async () => {
-    const response = await request(app).patch('/400');
+    const response = await request('localhost:3000').patch('/400');
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, { message: 'Bad request' });
   });
 
   it('patch responds with 500', async () => {
-    const response = await request(app).patch('/500');
+    const response = await request('localhost:3000').patch('/500');
     assert.equal(response.status, 500);
     assert.deepEqual(response.body, { message: 'Internal server error' });
   });
 
   it('delete responds with Hello, world!', async () => {
-    const response = await request(app).delete('/200');
+    const response = await request('localhost:3000').delete('/200');
     assert.equal(response.status, 200);
     assert.deepEqual(response.body, { message: 'Hello, world!' });
   });
 
   it('delete responds with 400', async () => {
-    const response = await request(app).delete('/400');
+    const response = await request('localhost:3000').delete('/400');
     assert.equal(response.status, 400);
     assert.deepEqual(response.body, { message: 'Bad request' });
   });
 
   it('delete responds with 500', async () => {
-    const response = await request(app).delete('/500');
+    const response = await request('localhost:3000').delete('/500');
     assert.equal(response.status, 500);
     assert.deepEqual(response.body, { message: 'Internal server error' });
   });

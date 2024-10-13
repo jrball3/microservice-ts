@@ -1,6 +1,9 @@
 import { HttpMethod } from "../method";
-import { RouteHandler } from "../routes/handler";
+import { RouteHandler } from "../route-handler";
 
+/**
+ * A route configuration
+ */
 export type RouteConfig = {
   path: string;
   method: HttpMethod;

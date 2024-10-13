@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r ts-node/register 'test/**/*.ts' --exit"
+    "test": "mocha"
   },
   "author": "",
   "license": "MIT",
