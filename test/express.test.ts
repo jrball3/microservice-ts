@@ -3,14 +3,14 @@ import express from 'express';
 import nodehttp from 'http';
 import request from 'supertest';
 import { http, logger, microservice } from '../src';
-import * as config from '../src/config';
+import * as configNS from '../src/config';
 import { Dependencies } from '../src/dependencies';
 
 describe('Express http server', () => {
   let server: nodehttp.Server;
 
   before('creates a server', () => {
-    const config: config.MicroserviceConfig = {
+    const config: configNS.MicroserviceConfig = {
       http: {
         provider: 'express',
         host: 'localhost',

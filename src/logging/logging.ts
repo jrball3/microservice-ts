@@ -18,4 +18,4 @@ export type Logger = {
   warn: (message: string) => void;
   debug: (message: string) => void;
   trace: (message: string) => void;
-}
+};

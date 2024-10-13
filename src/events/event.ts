@@ -3,7 +3,7 @@
  */
 export type EventData = {
   [key: string]: unknown;
-}
+};
 
 /**
  * An event
@@ -13,9 +13,9 @@ export type Event = {
   eventName: string;
   eventData: EventData;
   eventTimestamp: Date;
-}
+};
 
-const generateTimestamp = () => new Date();
+const generateTimestamp = (): Date => new Date();
 
 /**
  * Event parameters
@@ -25,7 +25,7 @@ export type EventParams = {
   eventName: string;
   eventData: EventData;
   eventTimestamp?: Date;
-}
+};
 
 /**
  * Creates an event

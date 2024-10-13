@@ -1,26 +1,26 @@
-import express from "express";
-import { Dependencies } from "../../../dependencies";
-import * as events from "../../../events";
-import * as logging from "../../../logging";
-import * as config from "../../config";
-import { toErrorResponse } from "../../errors";
-import { RequestContext } from "../../request-context";
-import { HandlerResponse, Request, RouteHandler } from "../../route-handler";
-import * as reqId from "../../utils/request-id";
+import express from 'express';
+import { Dependencies } from '../../../dependencies';
+import * as events from '../../../events';
+import * as logging from '../../../logging';
+import * as configNS from '../../config';
+import { toErrorResponse } from '../../errors';
+import { RequestContext } from '../../request-context';
+import { HandlerResponse, Request, RouteHandler } from '../../route-handler';
+import * as reqId from '../../utils/request-id';
 
 const getRequest = (req: express.Request): Request => {
   const { headers, params, query, body } = req;
   return { headers, params, query, body };
-}
+};
 
 type LogDependencies = {
   logger: logging.Logger;
-  config: config.HttpConfig;
-  route: config.RouteConfig;
+  config: configNS.HttpConfig;
+  route: configNS.RouteConfig;
   context: RequestContext;
-}
+};
 
-const logRequest = (deps: LogDependencies) => (request: Request) => {
+const logRequest = (deps: LogDependencies) => (request: Request): void => {
   const { logger, config, route, context } = deps;
   const { method, path } = route;
   const logLevel = config.logging.logRequests[method];
@@ -34,9 +34,9 @@ const logRequest = (deps: LogDependencies) => (request: Request) => {
       }),
     );
   }
-}
+};
 
-const logResponse = (deps: LogDependencies) => (response: HandlerResponse) => {
+const logResponse = (deps: LogDependencies) => (response: HandlerResponse): void => {
   const { logger, config, route, context } = deps;
   const { method, path } = route;
   const logLevel = config.logging.logResponses[response.code];
@@ -50,12 +50,12 @@ const logResponse = (deps: LogDependencies) => (response: HandlerResponse) => {
       }),
     );
   }
-}
+};
 
 type HandleRequestDependencies = {
   dependencies: Dependencies;
   context: RequestContext;
-}
+};
 
 const handleRequest = (deps: HandleRequestDependencies) =>
   (handler: RouteHandler) =>
@@ -69,31 +69,32 @@ const handleRequest = (deps: HandleRequestDependencies) =>
           code: 500,
           data: toErrorResponse(error),
         };
-      };
+      }
       return response;
-    }
+    };
 
 const sendResponse = (
   res: express.Response,
   next: express.NextFunction,
-) => (response: HandlerResponse) => {
-  res.set(response.headers).status(response.code).json(response.data);
-  next();
-}
+): ((response: HandlerResponse) => void) =>
+  (response: HandlerResponse): void => {
+    res.set(response.headers).status(response.code).json(response.data);
+    next();
+  };
 
 type WrapHandlerDependencies = {
   logger: logging.Logger;
-  config: config.HttpConfig;
+  config: configNS.HttpConfig;
   dependencies: Dependencies;
-  route: config.RouteConfig;
-}
+  route: configNS.RouteConfig;
+};
 
-const createRequestContext = (route: config.RouteConfig) =>
+const createRequestContext = (route: configNS.RouteConfig) =>
   (req: express.Request): RequestContext => {
     const { path, method } = route;
-    const requestId = req.headers["x-request-id"]?.[0] ?? reqId.generate();
+    const requestId = req.headers['x-request-id']?.[0] ?? reqId.generate();
     return { requestId, path, method };
-  }
+  };
 
 type ProcessDependencies = WrapHandlerDependencies & {
   context: RequestContext;
@@ -106,14 +107,14 @@ const processRequest = (deps: ProcessDependencies) =>
       logRequest(deps)(request);
       const handleRequestFn = handleRequest(deps)(handler);
       return handleRequestFn(request);
-    }
+    };
 
 const processResponse = (deps: ProcessDependencies) =>
-  (res: express.Response, next: express.NextFunction) =>
-    (response: HandlerResponse) => {
+  (res: express.Response, next: express.NextFunction): ((response: HandlerResponse) => void) =>
+    (response: HandlerResponse): void => {
       logResponse(deps)(response);
       sendResponse(res, next)(response);
-    }
+    };
 
 const wrapHandler = (deps: WrapHandlerDependencies) =>
   (handler: RouteHandler): express.RequestHandler =>
@@ -131,8 +132,8 @@ const wrapHandler = (deps: WrapHandlerDependencies) =>
  * @returns A function that applies the routes to an Express application
  */
 export const apply = (dependencies: Dependencies) =>
-  (config: config.HttpConfig) =>
-    (app: express.Application) => {
+  (config: configNS.HttpConfig) =>
+    (app: express.Application): express.Application => {
       config.routes.forEach((route) => {
         const { logger } = dependencies;
         const { path, method, handler } = route;
@@ -140,4 +141,4 @@ export const apply = (dependencies: Dependencies) =>
         app[method](path, wrapHandler(wrapHandlerDeps)(handler));
       });
       return app;
-    }
+    };

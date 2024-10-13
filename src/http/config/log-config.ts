@@ -1,5 +1,5 @@
-import * as logger from "../../logging";
-import { HttpMethod } from "../method";
+import * as logger from '../../logging';
+import { HttpMethod } from '../method';
 
 /**
  * Logging configuration

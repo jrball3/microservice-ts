@@ -6,21 +6,21 @@ import { HttpConfig } from '../config';
  * A function that builds a server
  */
 export type BuildServerFn = (dependencies: Dependencies) =>
-  (config: HttpConfig) => nodehttp.Server;
+(config: HttpConfig) => nodehttp.Server;
 
 /**
  * A HTTP provider
  */
 export type HttpProvider = {
   buildServer: BuildServerFn;
-}
+};
 
 /**
  * A registry of HTTP providers
  */
 type ProviderRegistry = {
   [key: string]: HttpProvider;
-}
+};
 
 const registry: ProviderRegistry = {};
 
@@ -31,7 +31,7 @@ const registry: ProviderRegistry = {};
  */
 export const register = (name: string, provider: HttpProvider): void => {
   registry[name] = provider;
-}
+};
 
 /**
  * Gets an HTTP provider
@@ -44,7 +44,7 @@ export const get = (name: string): HttpProvider => {
     throw new Error(`HTTP provider '${name}' not found`);
   }
   return provider;
-}
+};
 
 /**
  * Builds a server
@@ -56,7 +56,7 @@ export const buildServer = (dependencies: Dependencies) =>
     (providerName: string): nodehttp.Server => {
       const provider = get(providerName);
       return provider.buildServer(dependencies)(config);
-    }
+    };
 
 /**
  * Creates an HTTP provider
@@ -65,4 +65,4 @@ export const buildServer = (dependencies: Dependencies) =>
  */
 export const createProvider = (buildServerFn: BuildServerFn): HttpProvider => {
   return { buildServer: buildServerFn };
-}
+};

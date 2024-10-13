@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { Dependencies } from '../../../dependencies';
-import * as config from '../../config';
+import * as configNS from '../../config';
 import { BuildServerFn } from '../registry';
 import * as routes from './routes';
 
@@ -12,9 +12,9 @@ import * as routes from './routes';
  */
 export const createBuildFn = (app: express.Application): BuildServerFn => 
   (dependencies: Dependencies) =>
-    (config: config.HttpConfig) => {
+    (config: configNS.HttpConfig) => {
       routes.apply(dependencies)(config)(app);
       return app.listen(config.port, config.host, () => {
         console.log(`Server is running on port ${config.port}`);
       });
-    }
+    };

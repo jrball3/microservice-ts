@@ -1,5 +1,5 @@
-import { LogConfig } from "./log-config";
-import { RouteConfig } from "./route-config";
+import { LogConfig } from './log-config';
+import { RouteConfig } from './route-config';
 
 /**
  * HTTP configuration
@@ -10,4 +10,4 @@ export type HttpConfig = {
   port: number;
   logging: LogConfig;
   routes: RouteConfig[];
-}
+};

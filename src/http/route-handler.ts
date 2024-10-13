@@ -1,5 +1,5 @@
-import { Dependencies } from "../dependencies";
-import { RequestContext } from "./request-context";
+import { Dependencies } from '../dependencies';
+import { RequestContext } from './request-context';
 
 /**
  * A handler response
@@ -8,7 +8,7 @@ export type HandlerResponse = {
   code: number;
   headers?: Record<string, string>;
   data: unknown;
-}
+};
 
 /**
  * A request headers
@@ -33,12 +33,12 @@ export type Request = {
   body: unknown;
   params: RequestParams;
   query: RequestQuery;
-}
+};
 
 /**
  * A route handler
  */
 export type RouteHandler = (dependencies: Dependencies) =>
-  (context: RequestContext) =>
-    (request: Request) =>
-      Promise<HandlerResponse>;
+(context: RequestContext) =>
+(request: Request) =>
+Promise<HandlerResponse>;
