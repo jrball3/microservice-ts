@@ -1,15 +1,12 @@
-import { MicroserviceConfig } from './config';
+import { Provider } from '../di/provider';
 import { Dependencies } from './dependencies';
-import * as http from '../http';
-import * as logging from '../logging';
-import { Provider } from './provider';
 
 /**
  * A microservice
  */
 export type Microservice = {
-  httpServer?: http.HttpServer;
-  logger?: logging.Logger;
+  start: () => Promise<boolean>;
+  stop: () => Promise<boolean>;
 };
 
 /**
@@ -19,46 +16,22 @@ export type Microservice = {
 export const createProvider = (): Provider<Dependencies, Microservice> => {
   return {
     resolve: (dependencies): Microservice => {
-      const logger = dependencies.loggingProvider?.resolve({});
-      if (dependencies.httpProvider) {
+      const { httpServer, logger } = dependencies;
+      if (httpServer) {
         if (!logger) {
           throw new Error('Logging provider is required for HTTP microservices');
         }
-        const httpServer = dependencies.httpProvider.resolve({ logger });
-        return { httpServer, logger };
       }
-      return { logger };
+      return {
+        start: async (): Promise<boolean> => {
+          await httpServer.start();
+          return Promise.resolve(true);
+        },
+        stop: async (): Promise<boolean> => {
+          await httpServer.stop();
+          return Promise.resolve(true);
+        },
+      };
     },
   };
-};
-
-/**
- * Starts a microservice
- * @param microservice - The microservice
- * @returns A function that starts a microservice
- */
-export const start = async (provider: Provider<Dependencies, Microservice>, config: MicroserviceConfig): Promise<Microservice> => {
-  const dependencies = {
-    httpProvider: http.providers.registry.get(config.http.provider),
-    loggingProvider: logging.providers.registry.get(config.logging.provider),
-  };
-  const microservice = provider.resolve(dependencies);
-  if (microservice.httpServer) {
-    await microservice.httpServer.start();
-    return microservice;
-  }
-  return microservice;
-};
-
-/**
- * Stops a microservice
- * @param microservice - The microservice
- * @returns A function that stops a microservice
- */
-export const stop = async (microservice: Microservice): Promise<Microservice> => {
-  if (microservice.httpServer) {
-    await microservice.httpServer.stop();
-    return microservice;
-  }
-  return Promise.resolve(microservice);
 };

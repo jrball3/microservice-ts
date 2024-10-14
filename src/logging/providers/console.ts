@@ -1,4 +1,4 @@
-import { Provider } from '../../microservice/provider';
+import { Provider } from '../../di/provider';
 import * as logConfig from '../config';
 import { Dependencies } from '../dependencies';
 import { Logger, LogLevel } from '../logging';

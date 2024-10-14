@@ -1,16 +1,13 @@
 import { assert } from 'chai';
 import express from 'express';
 import request from 'supertest';
-import { http, logger } from '../src';
-import * as microserviceNS from '../src/microservice';
-
+import { di, http, logger, microservice as microserviceNS } from '../src';
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
   before('creates a microservice', async () => {
     const config: microserviceNS.MicroserviceConfig = {
       http: {
-        provider: 'express',
         host: 'localhost',
         port: 3000,
         logging: {
@@ -181,21 +178,25 @@ describe('Microservice', () => {
         ],
       },
       logging: {
-        provider: 'console',
         level: logger.LogLevel.TRACE,
       },
     };
-    const app = express();
-    const expressProvider = http.providers.express.server.createProvider(app, config.http);
-    http.providers.registry.register('express', expressProvider);
+
     const loggerProvider = logger.providers.console.createProvider(config.logging);
-    logger.providers.registry.register('console', loggerProvider);
+    di.register('logger', [], loggerProvider);
+
+    const app = express();
+    const httpProvider = http.providers.express.server.createProvider(app, config.http);
+    di.register('httpServer', ['logger'], httpProvider);
+
     const provider = microserviceNS.createProvider();
-    microservice = await microserviceNS.start(provider, config);
+    di.register('microservice', ['httpServer', 'logger'], provider);
+    microservice = await di.resolve('microservice', provider);
+    await microservice.start();
   });
 
-  after('stops the server', () => {
-    microserviceNS.stop(microservice);
+  after('stops the server', async () => {
+    await microservice.stop();
   });
 
   it('get responds with Hello, world!', async () => {
