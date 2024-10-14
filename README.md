@@ -20,11 +20,6 @@ Microservice-TS is a declarative, functional library enabling agile creation of 
 import express from 'express';
 import { di, http, logger, microservice } from 'microservice-ts';
 
-// Define the logging configuration, required for an http microservice
-const loggingConfig: logger.config.LoggingConfig = {
-  level: logger.LogLevel.INFO,
-};
-
 // Construct some application middleware
 const appMiddleware = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
   (req as any).appliedAppMiddleware = true;
@@ -38,14 +33,23 @@ const getMiddleware = (req: express.Request, _res: express.Response, next: expre
 };
 
 // Construct a route handler for a GET route
-const getHandler = (_dependencies: http.Dependencies) => 
-  (_context: http.RequestContext) =>
-  async (_request: http.UnparsedRequest) => {
-    return {
-      code: 200,
+type ParsedRequest = {
+  parsed: boolean;
+  message: string;
+};
+const parseRequest = (_dependencies: http.Dependencies) => 
+  (_context: http.RequestContext) => 
+    (_request: http.UnparsedRequest) => ({
+      parsed: true,
       data: { message: 'Hello, world!' },
-    };
-  };
+    });
+const handleParsedRequest = (_dependencies: http.Dependencies) => 
+  (_context: http.RequestContext) => 
+    (_request: ParsedRequest) => ({
+      statusCode: 200,
+      data: { message: 'Hello, world!' },
+    });
+const getHandler: http.RouteHandler = http.routeHandler.create(parseRequest)(handleParsedRequest);
 
 // Construct a route for a GET route
 const getRoute: http.providers.express.ExpressRouteDefinition = {
@@ -56,6 +60,11 @@ const getRoute: http.providers.express.ExpressRouteDefinition = {
 };
 
 const routes: http.providers.express.ExpressRouteDefinition[] = [getRoute];
+
+// Define the logging configuration, required for an http microservice
+const loggingConfig: logger.config.LoggingConfig = {
+  level: logger.LogLevel.INFO,
+};
 
 // Construct the HTTP server configuration
 const httpConfig: http.config.HttpConfig = {
@@ -81,10 +90,6 @@ const config: microservice.MicroserviceConfig = {
   logging: loggingConfig,
 };
 
-// Set up the dependency injection container
-const loggerProvider = logger.providers.console.createProvider(config.logging);
-di.register('logger', [], loggerProvider);
-
 // Construct the express app
 const app = express();
 
@@ -98,12 +103,16 @@ const extractRequestContext = (req: express.Request) => ({
   appliedRouteMiddleware: (req as any).appliedRouteMiddleware,
 });
 
-// Construct the http server provider
+// Construct and register the logger provider
+const loggerProvider = logger.providers.console.createProvider(config.logging);
+di.register('logger', [], loggerProvider);
+
+// Construct and register the http server provider
 const opts = { extractRequestContext };
 const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
 di.register('httpServer', ['logger'], httpProvider);
 
-// Construct the microservice provider
+// Construct and register the microservice provider
 const microserviceProvider = microservice.createProvider();
 di.register('microservice', ['httpServer', 'logger'], microserviceProvider);
 
