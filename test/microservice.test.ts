@@ -186,7 +186,11 @@ describe('Microservice', () => {
     di.register('logger', [], loggerProvider);
 
     const app = express();
-    const httpProvider = http.providers.express.server.createProvider(app, config.http);
+    const extractRequestContext = (_req: express.Request): Record<string, unknown> => ({
+      extractedRequestContext: true,
+    });
+    const opts = { extractRequestContext };
+    const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
     di.register('httpServer', ['logger'], httpProvider);
 
     const provider = microserviceNS.createProvider();

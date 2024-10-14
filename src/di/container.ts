@@ -59,6 +59,7 @@ const resolveDependencies = async <D>(name: string): Promise<D> => {
     if (!depProvider) {
       throw new Error(`Provider for dependency ${depName} not found`);
     }
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
     deps[depName] = await resolve(depName, depProvider);
   }
   return deps as D;

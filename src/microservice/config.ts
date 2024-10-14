@@ -7,4 +7,3 @@ export type MicroserviceConfig = {
   http: http.config.HttpConfig;
   logging: logging.config.LoggingConfig;
 };
-

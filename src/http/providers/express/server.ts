@@ -5,6 +5,7 @@ import * as configNS from '../../config';
 import { Dependencies } from '../../dependencies';
 import { HttpServer } from '../../http-server';
 import * as routes from './routes';
+import { ExpressProviderOpts } from './opts';
 
 /**
  * Creates an HTTP provider
@@ -14,9 +15,10 @@ import * as routes from './routes';
 export const createProvider = (
   app: express.Application,
   config: configNS.HttpConfig,
-): Provider<Dependencies, HttpServer> => {
-  const resolve = (dependencies: Dependencies): HttpServer => {
-    routes.apply(dependencies)(config)(app);
+  opts?: ExpressProviderOpts,
+): Provider<Dependencies, HttpServer> => ({
+  resolve: (dependencies: Dependencies): HttpServer => {
+    routes.apply(dependencies)(config)(app, opts);
     let server: nodehttp.Server | undefined;
 
     const start = async (): Promise<void> => {
@@ -48,7 +50,5 @@ export const createProvider = (
       start,
       stop,
     };
-  };
-
-  return { resolve };
-};
+  },
+});

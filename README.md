@@ -66,7 +66,8 @@ const loggerProvider = logger.providers.console.createProvider(config.logging);
 di.register('logger', [], loggerProvider);
 
 const app = express();
-const httpProvider = http.providers.express.server.createProvider(app, config.http);
+const opts = { extractRequestContext: (_req: express.Request) => ({ extractedRequestContext: true }) };
+const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
 di.register('httpServer', ['logger'], httpProvider);
 
 const microserviceProvider = microservice.createProvider();
