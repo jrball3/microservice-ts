@@ -1,7 +1,7 @@
 import * as logger from '../logging';
 
 /**
- * Microservice dependencies
+ * The dependencies for the HTTP module
  */
 export type Dependencies = {
   logger: logger.Logger;

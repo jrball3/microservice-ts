@@ -24,11 +24,15 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
       }
       return {
         start: async (): Promise<boolean> => {
-          await httpServer.start();
+          if (httpServer) {
+            await httpServer.start();
+          }
           return Promise.resolve(true);
         },
         stop: async (): Promise<boolean> => {
-          await httpServer.stop();
+          if (httpServer) {
+            await httpServer.stop();
+          }
           return Promise.resolve(true);
         },
       };

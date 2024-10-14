@@ -38,6 +38,11 @@ const logResponse = (deps: ProcessResponseDependencies) => (response: HandlerRes
   }
 };
 
+/**
+ * Processes a response
+ * @param deps - The dependencies
+ * @returns - The processed response
+ */
 export const processResponse = (deps: ProcessResponseDependencies) =>
   (res: express.Response, next: express.NextFunction): ((response: HandlerResponse) => void) =>
     (response: HandlerResponse): void => {

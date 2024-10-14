@@ -68,6 +68,11 @@ type ProcessDependencies = {
   opts?: optsNS.ExpressProviderOpts;
 };
 
+/**
+ * Processes a request
+ * @param deps - The dependencies
+ * @returns - The processed request
+ */
 export const processRequest = (deps: ProcessDependencies) =>
   (handler: RouteHandler) =>
     async (req: express.Request): Promise<HandlerResponse> => {

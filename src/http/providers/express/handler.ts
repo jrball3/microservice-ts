@@ -9,6 +9,9 @@ import { processResponse } from './response';
 import { processRequest } from './request';
 import { RouteDefinition } from '../../route-definition';
 
+/**
+ * The dependencies for the toExpressHandler function
+ */
 type ToExpressHandlerDependencies = {
   logger: logging.Logger;
   config: configNS.HttpConfig;
@@ -17,6 +20,11 @@ type ToExpressHandlerDependencies = {
   opts?: optsNS.ExpressProviderOpts;
 };
 
+/**
+ * Converts a route handler to an Express request handler
+ * @param deps - The dependencies
+ * @returns - The Express request handler
+ */
 export const toExpressHandler = (deps: ToExpressHandlerDependencies) =>
   (handler: RouteHandler): express.RequestHandler =>
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
