@@ -7,188 +7,190 @@ describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
   before('creates a microservice', async () => {
-    const config = {
-      http: {
-        host: 'localhost',
-        port: 3000,
-        logging: {
-          logRequests: {
-            get: logger.LogLevel.INFO,
-            post: logger.LogLevel.INFO,
-            put: logger.LogLevel.INFO,
-            delete: logger.LogLevel.INFO,
-            patch: logger.LogLevel.INFO,
-          },
-          logResponses: {
-            200: logger.LogLevel.INFO,
-            400: logger.LogLevel.WARN,
-            500: logger.LogLevel.ERROR,
-          },
-        },
-        routes: [
-          {
-            path: '/200',
-            method: http.HttpMethod.GET,
-            middleware: [
-              (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-                (req as any).appliedRouteMiddleware = true;
-                next();
-              },
-            ],
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 200,
-                data: { message: 'Hello, world!' },
-              };
-            },
-          },
-          {
-            path: '/200',
-            method: http.HttpMethod.GET,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 200,
-                data: { message: 'Hello, world!' },
-              };
-            },
-          },
-          {
-            path: '/400',
-            method: http.HttpMethod.POST,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 400,
-                data: { message: 'Bad request' },
-              };
-            },
-          },
-          {
-            path: '/400',
-            method: http.HttpMethod.GET,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 400,
-                data: { message: 'Bad request' },
-              };
-            },
-          },
-          {
-            path: '/500',
-            method: http.HttpMethod.POST,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 500,
-                data: { message: 'Internal server error' },
-              };
-            },
-          },
-          {
-            path: '/500',
-            method: http.HttpMethod.GET,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 500,
-                data: { message: 'Internal server error' },
-              };
-            },
-          },
-          {
-            path: '/200',
-            method: http.HttpMethod.PUT,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 200,
-                data: { message: 'Hello, world!' },
-              };
-            },
-          },
-          {
-            path: '/200',
-            method: http.HttpMethod.PATCH,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 200,
-                data: { message: 'Hello, world!' },
-              };
-            },
-          },
-          {
-            path: '/200',
-            method: http.HttpMethod.DELETE,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 200,
-                data: { message: 'Hello, world!' },
-              };
-            },
-          },
-          {
-            path: '/400',
-            method: http.HttpMethod.PUT,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 400,
-                data: { message: 'Bad request' },
-              };
-            },
-          },
-          {
-            path: '/400',
-            method: http.HttpMethod.PATCH,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 400,
-                data: { message: 'Bad request' },
-              };
-            },
-          },
-          {
-            path: '/400',
-            method: http.HttpMethod.DELETE,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 400,
-                data: { message: 'Bad request' },
-              };
-            },
-          },
-          {
-            path: '/500',
-            method: http.HttpMethod.PUT,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 500,
-                data: { message: 'Internal server error' },
-              };
-            },
-          },
-          {
-            path: '/500',
-            method: http.HttpMethod.PATCH,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 500,
-                data: { message: 'Internal server error' },
-              };
-            },
-          },
-          {
-            path: '/500',
-            method: http.HttpMethod.DELETE,
-            handler: (_dependencies) => (_context) => async (_request) => {
-              return {
-                code: 500,
-                data: { message: 'Internal server error' },
-              };
-            },
+    const routes: http.providers.express.config.ExpressRouteConfig[] = [
+      {
+        path: '/200',
+        method: http.HttpMethod.GET,
+        middleware: [
+          (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+            (req as any).appliedRouteMiddleware = true;
+            next();
           },
         ],
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 200,
+            data: { message: 'Hello, world!' },
+          };
+        },
       },
+      {
+        path: '/200',
+        method: http.HttpMethod.GET,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 200,
+            data: { message: 'Hello, world!' },
+          };
+        },
+      },
+      {
+        path: '/400',
+        method: http.HttpMethod.POST,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 400,
+            data: { message: 'Bad request' },
+          };
+        },
+      },
+      {
+        path: '/400',
+        method: http.HttpMethod.GET,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 400,
+            data: { message: 'Bad request' },
+          };
+        },
+      },
+      {
+        path: '/500',
+        method: http.HttpMethod.POST,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 500,
+            data: { message: 'Internal server error' },
+          };
+        },
+      },
+      {
+        path: '/500',
+        method: http.HttpMethod.GET,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 500,
+            data: { message: 'Internal server error' },
+          };
+        },
+      },
+      {
+        path: '/200',
+        method: http.HttpMethod.PUT,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 200,
+            data: { message: 'Hello, world!' },
+          };
+        },
+      },
+      {
+        path: '/200',
+        method: http.HttpMethod.PATCH,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 200,
+            data: { message: 'Hello, world!' },
+          };
+        },
+      },
+      {
+        path: '/200',
+        method: http.HttpMethod.DELETE,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 200,
+            data: { message: 'Hello, world!' },
+          };
+        },
+      },
+      {
+        path: '/400',
+        method: http.HttpMethod.PUT,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 400,
+            data: { message: 'Bad request' },
+          };
+        },
+      },
+      {
+        path: '/400',
+        method: http.HttpMethod.PATCH,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 400,
+            data: { message: 'Bad request' },
+          };
+        },
+      },
+      {
+        path: '/400',
+        method: http.HttpMethod.DELETE,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 400,
+            data: { message: 'Bad request' },
+          };
+        },
+      },
+      {
+        path: '/500',
+        method: http.HttpMethod.PUT,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 500,
+            data: { message: 'Internal server error' },
+          };
+        },
+      },
+      {
+        path: '/500',
+        method: http.HttpMethod.PATCH,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 500,
+            data: { message: 'Internal server error' },
+          };
+        },
+      },
+      {
+        path: '/500',
+        method: http.HttpMethod.DELETE,
+        handler: (_dependencies) => (_context) => async (_request) => {
+          return {
+            code: 500,
+            data: { message: 'Internal server error' },
+          };
+        },
+      },
+    ];
+    const httpConfig: http.config.HttpConfig = {
+      host: 'localhost',
+      port: 3000,
       logging: {
-        level: logger.LogLevel.TRACE,
+        logRequests: {
+          get: logger.LogLevel.INFO,
+          post: logger.LogLevel.INFO,
+          put: logger.LogLevel.INFO,
+          delete: logger.LogLevel.INFO,
+          patch: logger.LogLevel.INFO,
+        },
+        logResponses: {
+          200: logger.LogLevel.INFO,
+          400: logger.LogLevel.WARN,
+          500: logger.LogLevel.ERROR,
+        },
       },
+      routes,
     };
-
+    const loggingConfig: logger.config.LoggingConfig = {
+      level: logger.LogLevel.TRACE,
+    };
+    const config = {
+      http: httpConfig,
+      logging: loggingConfig,
+    };
     const loggerProvider = logger.providers.console.createProvider(config.logging);
     di.register('logger', [], loggerProvider);
 

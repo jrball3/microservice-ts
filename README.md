@@ -38,23 +38,27 @@ const getMiddleware = (req: express.Request, _res: express.Response, next: expre
 };
 
 // Construct a route handler for a GET route
-const getHandler = (_dependencies) => (_context) => async (_request) => {
-  return {
-    code: 200,
-    data: { message: 'Hello, world!' },
+const getHandler = (_dependencies: http.Dependencies) => 
+  (_context: http.RequestContext) =>
+  async (_request: http.UnparsedRequest) => {
+    return {
+      code: 200,
+      data: { message: 'Hello, world!' },
+    };
   };
-};
 
 // Construct a route for a GET route
-const getRoute = {
+const getRoute: http.providers.express.config.ExpressRouteConfig = {
   path: '/',
   method: HttpMethod.GET,
   middleware: [getMiddleware],
   handler: getHandler,
 };
 
+const routes: http.providers.express.config.ExpressRouteConfig[] = [getRoute];
+
 // Construct the HTTP server configuration
-const httpConfig = {
+const httpConfig: http.config.HttpConfig = {
   host: 'localhost',
   port: 3000,
   logging: {
@@ -68,11 +72,11 @@ const httpConfig = {
       500: logger.LogLevel.ERROR,
     },
   },
-  routes: [getRoute, postRoute],
+  routes,
 };
 
 // Construct the microservice configuration
-const config: MicroserviceConfig = {
+const config: microservice.MicroserviceConfig = {
   http: httpConfig,
   logging: loggingConfig,
 };
