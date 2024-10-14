@@ -49,7 +49,7 @@ const handleRequest = (deps: HandleRequestDependencies) =>
       const { dependencies, context } = deps;
       let response: HandlerResponse;
       try {
-        response = await handler(dependencies)(context)(handlerInput);
+        response = await handler(dependencies)(context, handlerInput);
       } catch (error) {
         response = {
           statusCode: 500,

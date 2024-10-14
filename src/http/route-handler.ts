@@ -39,10 +39,7 @@ export type Request = {
  * A route handler
  */
 export type RouteHandler = (dependencies: Dependencies) =>
-(context: RequestContext) =>
-(request: Request) =>
-Promise<HandlerResponse>;
-
+(context: RequestContext, request: Request) => Promise<HandlerResponse>;
 
 /**
  * Creates a route handler
@@ -51,19 +48,16 @@ Promise<HandlerResponse>;
  * @returns A route handler
  */
 export const create = <ParsedRequest>(
-  parseRequest: (dependencies: Dependencies) => 
-    (context: RequestContext) => 
-      (request: Request) => 
-        ParsedRequest | Promise<ParsedRequest>,
-) => (
+  parseRequest: (dependencies: Dependencies) =>
+  (context: RequestContext, request: Request) =>
+  ParsedRequest | Promise<ParsedRequest>,
   handleParsedRequest: 
-    (dependencies: Dependencies) => 
-      (context: RequestContext) => 
-        (request: ParsedRequest) => Promise<HandlerResponse>
+  (dependencies: Dependencies) => 
+  (context: RequestContext, request: ParsedRequest) =>
+  Promise<HandlerResponse>,
 ): RouteHandler =>
-  (dependencies: Dependencies) =>
-    (context: RequestContext) =>
-      async (request: Request) => {
-        const parsedRequest = await parseRequest(dependencies)(context)(request);
-    return handleParsedRequest(dependencies)(context)(parsedRequest);
-  };
+    (dependencies: Dependencies) =>
+      async (context: RequestContext, request: Request) => {
+        const parsedRequest = await parseRequest(dependencies)(context, request);
+        return handleParsedRequest(dependencies)(context, parsedRequest);
+      };
