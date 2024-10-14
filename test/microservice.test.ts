@@ -2,14 +2,13 @@ import { assert } from 'chai';
 import express from 'express';
 import request from 'supertest';
 import { http, logger } from '../src';
-import * as configNS from '../src/config';
 import * as microserviceNS from '../src/microservice';
 
-describe('Express http server', () => {
+describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
-  before('creates a server', () => {
-    const config: configNS.MicroserviceConfig = {
+  before('creates a microservice', async () => {
+    const config: microserviceNS.MicroserviceConfig = {
       http: {
         provider: 'express',
         host: 'localhost',
@@ -187,13 +186,12 @@ describe('Express http server', () => {
       },
     };
     const app = express();
-    const buildExpressServer = http.providers.express.server.createBuildFn(app);
-    const expressProvider = http.providers.registry.createProvider(buildExpressServer);
+    const expressProvider = http.providers.express.server.createProvider(app, config.http);
     http.providers.registry.register('express', expressProvider);
-    const buildLogger = logger.providers.console.buildLogger;
-    const loggerProvider = logger.providers.console.createProvider(buildLogger);
+    const loggerProvider = logger.providers.console.createProvider(config.logging);
     logger.providers.registry.register('console', loggerProvider);
-    microservice = microserviceNS.start(config);
+    const provider = microserviceNS.createProvider();
+    microservice = await microserviceNS.start(provider, config);
   });
 
   after('stops the server', () => {

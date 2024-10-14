@@ -1,5 +1,5 @@
-import * as http from './http';
-import * as logging from './logging';
+import * as http from '../http';
+import * as logging from '../logging';
 /**
  * A microservice configuration
  */

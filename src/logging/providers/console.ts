@@ -1,7 +1,7 @@
+import { Provider } from '../../microservice/provider';
 import * as logConfig from '../config';
 import { Dependencies } from '../dependencies';
 import { Logger, LogLevel } from '../logging';
-import { BuildLoggerFn, LoggingProvider } from './registry';
 
 const shouldLog = (logLevel: LogLevel, configLevel: LogLevel): boolean => {
   const logLevels = [LogLevel.ERROR, LogLevel.WARN, LogLevel.INFO, LogLevel.DEBUG, LogLevel.TRACE];
@@ -13,7 +13,7 @@ const shouldLog = (logLevel: LogLevel, configLevel: LogLevel): boolean => {
  * @param dependencies - The dependencies
  * @returns A logger
  */
-export const buildLogger = (_dependencies: Dependencies) =>
+const buildLogger = (_dependencies: Dependencies) =>
   (config: logConfig.LoggingConfig): Logger => {
     const info = (message: string): void => {
       if (shouldLog(LogLevel.INFO, config.level)) {
@@ -65,6 +65,8 @@ export const buildLogger = (_dependencies: Dependencies) =>
  * @param buildLoggerFn - The build logger function
  * @returns A logging provider
  */
-export const createProvider = (buildLoggerFn: BuildLoggerFn): LoggingProvider => ({
-  buildLogger: buildLoggerFn,
+export const createProvider = (
+  config: logConfig.LoggingConfig,
+): Provider<Dependencies, Logger> => ({
+  resolve: (dependencies: Dependencies) => buildLogger(dependencies)(config),
 });
