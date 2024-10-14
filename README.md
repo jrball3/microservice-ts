@@ -48,14 +48,14 @@ const getHandler = (_dependencies: http.Dependencies) =>
   };
 
 // Construct a route for a GET route
-const getRoute: http.providers.express.config.ExpressRouteConfig = {
+const getRoute: http.providers.express.ExpressRouteDefinition = {
   path: '/',
   method: HttpMethod.GET,
   middleware: [getMiddleware],
   handler: getHandler,
 };
 
-const routes: http.providers.express.config.ExpressRouteConfig[] = [getRoute];
+const routes: http.providers.express.ExpressRouteDefinition[] = [getRoute];
 
 // Construct the HTTP server configuration
 const httpConfig: http.config.HttpConfig = {

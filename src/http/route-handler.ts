@@ -5,7 +5,7 @@ import { RequestContext } from './request-context';
  * A handler response
  */
 export type HandlerResponse = {
-  code: number;
+  statusCode: number;
   headers?: Record<string, string>;
   data: unknown;
 };
@@ -42,3 +42,28 @@ export type RouteHandler = (dependencies: Dependencies) =>
 (context: RequestContext) =>
 (request: Request) =>
 Promise<HandlerResponse>;
+
+
+/**
+ * Creates a route handler
+ * @param parseRequest - A function that parses the request
+ * @param handleParsedRequest - A function that handles the parsed request
+ * @returns A route handler
+ */
+export const create = <ParsedRequest>(
+  parseRequest: (dependencies: Dependencies) => 
+    (context: RequestContext) => 
+      (request: Request) => 
+        ParsedRequest | Promise<ParsedRequest>,
+) => (
+  handleParsedRequest: 
+    (dependencies: Dependencies) => 
+      (context: RequestContext) => 
+        (request: ParsedRequest) => Promise<HandlerResponse>
+): RouteHandler =>
+  (dependencies: Dependencies) =>
+    (context: RequestContext) =>
+      async (request: Request) => {
+        const parsedRequest = await parseRequest(dependencies)(context)(request);
+    return handleParsedRequest(dependencies)(context)(parsedRequest);
+  };

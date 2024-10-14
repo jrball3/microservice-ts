@@ -27,8 +27,8 @@ export const apply = (dependencies: Dependencies) =>
         }
         const { path, method, handler } = route;
         const wrapHandlerDeps = { logger, config, dependencies, route, opts };
-        const wrappedHandler = handlerNS.createExpressHandler(wrapHandlerDeps)(handler);
-        app[method](path, ...wrappedMiddlewares, wrappedHandler);
+        const wrappedHandler = handlerNS.toExpressHandler(wrapHandlerDeps)(handler);
+        app[method](path,[...wrappedMiddlewares, wrappedHandler]);
       });
       return app;
     };

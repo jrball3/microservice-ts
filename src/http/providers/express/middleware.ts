@@ -1,16 +1,16 @@
 import express from 'express';
 import * as logging from '../../../logging';
 import * as configNS from '../../config';
-import { RouteConfig } from '../../config';
 import { Dependencies } from '../../dependencies';
 import { toErrorResponse } from '../../errors';
 import { RequestContext } from '../../request-context';
-import { ExpressRouteConfig } from './config';
+import { RouteDefinition } from '../../route-definition';
 import * as optsNS from './opts';
 import { processResponse } from './response';
+import { ExpressRouteDefinition } from './route-definition';
 
-export const getMiddleware = (route: RouteConfig): express.RequestHandler[] => {
-  return (route as ExpressRouteConfig).middleware ?? [];
+export const getMiddleware = (route: RouteDefinition): express.RequestHandler[] => {
+  return (route as ExpressRouteDefinition).middleware ?? [];
 };
 
 type WrapMiddlewareDependencies = {
@@ -19,7 +19,7 @@ type WrapMiddlewareDependencies = {
   dependencies: Dependencies;
   logger: logging.Logger;
   opts?: optsNS.ExpressProviderOpts;
-  route: configNS.RouteConfig;
+  route: RouteDefinition;
 };
 
 export const wrapMiddleware = (deps: WrapMiddlewareDependencies) => (middleware: express.RequestHandler): express.RequestHandler => {
@@ -28,7 +28,7 @@ export const wrapMiddleware = (deps: WrapMiddlewareDependencies) => (middleware:
       await middleware(req, res, next);
     } catch (error) {
       const response = {
-        code: 500,
+        statusCode: 500,
         data: toErrorResponse(error),
       };
       processResponse(deps)(res, next)(response);

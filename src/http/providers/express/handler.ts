@@ -7,16 +7,17 @@ import * as optsNS from './opts';
 import * as utils from './utils';
 import { processResponse } from './response';
 import { processRequest } from './request';
+import { RouteDefinition } from '../../route-definition';
 
-type CreateExpressHandlerDependencies = {
+type ToExpressHandlerDependencies = {
   logger: logging.Logger;
   config: configNS.HttpConfig;
   dependencies: Dependencies;
-  route: configNS.RouteConfig;
+  route: RouteDefinition;
   opts?: optsNS.ExpressProviderOpts;
 };
 
-export const createExpressHandler = (deps: CreateExpressHandlerDependencies) =>
+export const toExpressHandler = (deps: ToExpressHandlerDependencies) =>
   (handler: RouteHandler): express.RequestHandler =>
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       const { route, opts } = deps;

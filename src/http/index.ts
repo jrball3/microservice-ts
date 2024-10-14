@@ -6,3 +6,4 @@ export * from './method';
 export * as providers from './providers';
 export * from './request-context';
 export * as routeHandler from './route-handler';
+export * from './route-definition';

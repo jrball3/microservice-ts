@@ -7,6 +7,7 @@ import { toErrorResponse } from '../../errors';
 import { RequestContext } from '../../request-context';
 import { HandlerResponse, Request, RouteHandler } from '../../route-handler';
 import * as optsNS from './opts';
+import { RouteDefinition } from '../../route-definition';
 
 const getRequest = (req: express.Request): Request => {
   const { headers, params, query, body } = req;
@@ -16,7 +17,7 @@ const getRequest = (req: express.Request): Request => {
 type LogDependencies = {
   logger: logging.Logger;
   config: configNS.HttpConfig;
-  route: configNS.RouteConfig;
+  route: RouteDefinition;
   context: RequestContext;
 };
 
@@ -51,7 +52,7 @@ const handleRequest = (deps: HandleRequestDependencies) =>
         response = await handler(dependencies)(context)(handlerInput);
       } catch (error) {
         response = {
-          code: 500,
+          statusCode: 500,
           data: toErrorResponse(error),
         };
       }
@@ -63,7 +64,7 @@ type ProcessDependencies = {
   logger: logging.Logger;
   config: configNS.HttpConfig;
   dependencies: Dependencies;
-  route: configNS.RouteConfig;
+  route: RouteDefinition;
   opts?: optsNS.ExpressProviderOpts;
 };
 

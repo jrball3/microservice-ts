@@ -7,7 +7,7 @@ describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
   before('creates a microservice', async () => {
-    const routes: http.providers.express.config.ExpressRouteConfig[] = [
+    const routes: http.providers.express.ExpressRouteDefinition[] = [
       {
         path: '/200',
         method: http.HttpMethod.GET,
@@ -17,19 +17,27 @@ describe('Microservice', () => {
             next();
           },
         ],
-        handler: (_dependencies) => (_context) => async (_request) => {
-          return {
-            code: 200,
-            data: { message: 'Hello, world!' },
-          };
-        },
+        handler: http.routeHandler.create(
+          (_dependencies) => (_context) => async (request) => ({
+            ...request,
+            parsed: true,
+          })
+        )(
+          (_dependencies) => (_context) => async (request) => ({
+            statusCode: 200,
+            data: { 
+              parsed: request.parsed, 
+              message: 'Hello, world!' 
+            },
+          })
+        ),
       },
       {
         path: '/200',
-        method: http.HttpMethod.GET,
+        method: http.HttpMethod.POST,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 200,
+            statusCode: 200,
             data: { message: 'Hello, world!' },
           };
         },
@@ -39,7 +47,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.POST,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 400,
+            statusCode: 400,
             data: { message: 'Bad request' },
           };
         },
@@ -49,7 +57,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.GET,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 400,
+            statusCode: 400,
             data: { message: 'Bad request' },
           };
         },
@@ -59,7 +67,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.POST,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 500,
+            statusCode: 500,
             data: { message: 'Internal server error' },
           };
         },
@@ -69,7 +77,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.GET,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 500,
+            statusCode: 500,
             data: { message: 'Internal server error' },
           };
         },
@@ -79,7 +87,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PUT,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 200,
+            statusCode: 200,
             data: { message: 'Hello, world!' },
           };
         },
@@ -89,7 +97,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PATCH,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 200,
+            statusCode: 200,
             data: { message: 'Hello, world!' },
           };
         },
@@ -99,7 +107,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.DELETE,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 200,
+            statusCode: 200,
             data: { message: 'Hello, world!' },
           };
         },
@@ -109,7 +117,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PUT,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 400,
+            statusCode: 400,
             data: { message: 'Bad request' },
           };
         },
@@ -119,7 +127,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PATCH,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 400,
+            statusCode: 400,
             data: { message: 'Bad request' },
           };
         },
@@ -129,7 +137,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.DELETE,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 400,
+            statusCode: 400,
             data: { message: 'Bad request' },
           };
         },
@@ -139,7 +147,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PUT,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 500,
+            statusCode: 500,
             data: { message: 'Internal server error' },
           };
         },
@@ -149,7 +157,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.PATCH,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 500,
+            statusCode: 500,
             data: { message: 'Internal server error' },
           };
         },
@@ -159,7 +167,7 @@ describe('Microservice', () => {
         method: http.HttpMethod.DELETE,
         handler: (_dependencies) => (_context) => async (_request) => {
           return {
-            code: 500,
+            statusCode: 500,
             data: { message: 'Internal server error' },
           };
         },
@@ -217,7 +225,7 @@ describe('Microservice', () => {
     const response = await request('localhost:3000').get('/200');
 
     assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { message: 'Hello, world!' });
+    assert.deepEqual(response.body, { parsed: true, message: 'Hello, world!' });
   });
 
   it('get responds with 400', async () => {

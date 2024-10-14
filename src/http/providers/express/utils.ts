@@ -1,8 +1,8 @@
 import * as express from 'express';
 import * as os from 'os';
-import * as config from '../../config';
 import * as providers from '..';
 import { RequestContext } from '../../request-context';
+import { RouteDefinition } from '../../route-definition';
 import * as utils from '../../utils';
 
 /**
@@ -12,7 +12,7 @@ import * as utils from '../../utils';
  * @returns A function that creates a request context
  */
 export const createRequestContext = (
-  route: config.RouteConfig,
+  route: RouteDefinition,
   opts?: providers.express.opts.ExpressProviderOpts,
 ) =>
   (req: express.Request): RequestContext => {
