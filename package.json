@@ -1,7 +1,7 @@
 {
   "name": "microservice-ts",
   "version": "1.0.0",
-  "description": "Declarative library enabling agile creation of microservices",
+  "description": "Declarative, functional library enabling agile creation of microservices with dependency injection",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
-  "author": "",
+  "author": "Jon Ball (https://github.com/jrball3)",
   "license": "MIT",
   "devDependencies": {
     "@types/chai": "^4.3.20",

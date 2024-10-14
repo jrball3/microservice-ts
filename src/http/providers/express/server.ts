@@ -4,8 +4,8 @@ import { Provider } from '../../../di/provider';
 import * as configNS from '../../config';
 import { Dependencies } from '../../dependencies';
 import { HttpServer } from '../../http-server';
-import * as routes from './routes';
 import { ExpressProviderOpts } from './opts';
+import * as routes from './routes';
 
 /**
  * Creates an HTTP provider

@@ -2,11 +2,12 @@ import { assert } from 'chai';
 import express from 'express';
 import request from 'supertest';
 import { di, http, logger, microservice as microserviceNS } from '../src';
+
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
   before('creates a microservice', async () => {
-    const config: microserviceNS.MicroserviceConfig = {
+    const config = {
       http: {
         host: 'localhost',
         port: 3000,
@@ -27,7 +28,13 @@ describe('Microservice', () => {
         routes: [
           {
             path: '/200',
-            method: 'post',
+            method: http.HttpMethod.GET,
+            middleware: [
+              (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+                (req as any).appliedRouteMiddleware = true;
+                next();
+              },
+            ],
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 200,
@@ -37,7 +44,7 @@ describe('Microservice', () => {
           },
           {
             path: '/200',
-            method: 'get',
+            method: http.HttpMethod.GET,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 200,
@@ -47,7 +54,7 @@ describe('Microservice', () => {
           },
           {
             path: '/400',
-            method: 'post',
+            method: http.HttpMethod.POST,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 400,
@@ -57,7 +64,7 @@ describe('Microservice', () => {
           },
           {
             path: '/400',
-            method: 'get',
+            method: http.HttpMethod.GET,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 400,
@@ -67,7 +74,7 @@ describe('Microservice', () => {
           },
           {
             path: '/500',
-            method: 'post',
+            method: http.HttpMethod.POST,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 500,
@@ -77,7 +84,7 @@ describe('Microservice', () => {
           },
           {
             path: '/500',
-            method: 'get',
+            method: http.HttpMethod.GET,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 500,
@@ -87,7 +94,7 @@ describe('Microservice', () => {
           },
           {
             path: '/200',
-            method: 'put',
+            method: http.HttpMethod.PUT,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 200,
@@ -97,7 +104,7 @@ describe('Microservice', () => {
           },
           {
             path: '/200',
-            method: 'patch',
+            method: http.HttpMethod.PATCH,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 200,
@@ -107,7 +114,7 @@ describe('Microservice', () => {
           },
           {
             path: '/200',
-            method: 'delete',
+            method: http.HttpMethod.DELETE,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 200,
@@ -117,7 +124,7 @@ describe('Microservice', () => {
           },
           {
             path: '/400',
-            method: 'put',
+            method: http.HttpMethod.PUT,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 400,
@@ -127,7 +134,7 @@ describe('Microservice', () => {
           },
           {
             path: '/400',
-            method: 'patch',
+            method: http.HttpMethod.PATCH,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 400,
@@ -137,7 +144,7 @@ describe('Microservice', () => {
           },
           {
             path: '/400',
-            method: 'delete',
+            method: http.HttpMethod.DELETE,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 400,
@@ -147,7 +154,7 @@ describe('Microservice', () => {
           },
           {
             path: '/500',
-            method: 'put',
+            method: http.HttpMethod.PUT,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 500,
@@ -157,7 +164,7 @@ describe('Microservice', () => {
           },
           {
             path: '/500',
-            method: 'patch',
+            method: http.HttpMethod.PATCH,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 500,
@@ -167,7 +174,7 @@ describe('Microservice', () => {
           },
           {
             path: '/500',
-            method: 'delete',
+            method: http.HttpMethod.DELETE,
             handler: (_dependencies) => (_context) => async (_request) => {
               return {
                 code: 500,
@@ -186,7 +193,8 @@ describe('Microservice', () => {
     di.register('logger', [], loggerProvider);
 
     const app = express();
-    const extractRequestContext = (_req: express.Request): Record<string, unknown> => ({
+    const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
+      appliedRouteMiddleware: (req as any).appliedRouteMiddleware ? true : false,
       extractedRequestContext: true,
     });
     const opts = { extractRequestContext };
