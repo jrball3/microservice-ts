@@ -1,6 +1,8 @@
 # Microservice-TS
 
-Microservice-TS is a declarative library enabling agile creation of microservices in TypeScript, using dependency injection, built on functional programming principles.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+
+Microservice-TS is a declarative, functional library enabling agile creation of microservices with dependency injection.
 
 ## Features
 
