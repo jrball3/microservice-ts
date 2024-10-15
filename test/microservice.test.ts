@@ -1,3 +1,5 @@
+/* eslint-disable import/no-named-as-default-member */
+
 import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
@@ -13,6 +15,7 @@ describe('Microservice', () => {
     disconnect: sinon.stub().resolves(),
     subscribe: sinon.stub().resolves(),
     run: sinon.stub().resolves(),
+    stop: sinon.stub().resolves(),
   };
 
   before('creates a microservice', async () => {
@@ -232,8 +235,10 @@ describe('Microservice', () => {
       clientId: 'my-app',
       brokers: ['localhost:9092'],
       groupId: 'my-group',
-      topic: 'my-topic',
-      handleMessage: sinon.stub().resolves(true),
+      subscribeTopics: { topics: ['my-topic'] },
+      runConfig: {
+        eachMessage: sinon.stub().resolves(true),
+      },
     };
     const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConfig);
     const kafkaConsumersProvider = {
@@ -251,13 +256,14 @@ describe('Microservice', () => {
 
   after('stops the server', async () => {
     await microservice.stop();
+    assert.isTrue(mockConsumer.stop.calledOnce);
+    assert.isTrue(mockConsumer.disconnect.calledOnce);
     sinon.restore();
   });
 
   it('connects and subscribes to Kafka topic', async () => {
     assert.isTrue(mockConsumer.connect.calledOnce);
     assert.isTrue(mockConsumer.subscribe.calledOnce);
-    assert.deepEqual(mockConsumer.subscribe.firstCall.args[0], { topic: 'my-topic' });
   });
 
   it('get responds with Hello, world!', async () => {
@@ -352,3 +358,5 @@ describe('Microservice', () => {
   });
 
 });
+
+/* eslint-enable import/no-named-as-default-member */

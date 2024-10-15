@@ -35,7 +35,7 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
           if (eventConsumers) {
             for (const consumer of Object.values(eventConsumers)) {
               await consumer.connect();
-              await consumer.subscribe();
+              await consumer.start();
             }
           }
           return Promise.resolve(true);
@@ -46,6 +46,7 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
           }
           if (eventConsumers) {
             for (const consumer of Object.values(eventConsumers)) {
+              await consumer.stop();
               await consumer.disconnect();
             }
           }

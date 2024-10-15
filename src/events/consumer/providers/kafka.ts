@@ -1,4 +1,4 @@
-import { Consumer, ConsumerConfig, EachMessagePayload, Kafka, KafkaConfig } from 'kafkajs';
+import { Consumer, ConsumerConfig, ConsumerRunConfig, ConsumerSubscribeTopics, Kafka, KafkaConfig } from 'kafkajs';
 import { Provider } from '../../../di/provider';
 import * as logging from '../../../logging';
 import { EventConsumer } from '../consumer';
@@ -11,9 +11,9 @@ export type KafkaConsumerConfig = {
   clientId: string;
   brokers: string[];
   groupId: string;
-  topic: string;
-  handleMessage: (payload: EachMessagePayload) => Promise<boolean>;
-}
+  subscribeTopics: ConsumerSubscribeTopics,
+  runConfig: ConsumerRunConfig;
+};
 
 /**
  * The Kafka consumer
@@ -47,7 +47,7 @@ export const createProvider = (
 
     return {
       consumer,
-      connect: async (): Promise<void> => {
+      connect: async (): Promise<boolean> => {
         try {
           await consumer.connect();
           logging.events.logEvent(logger)(logging.LogLevel.INFO, {
@@ -60,6 +60,7 @@ export const createProvider = (
               groupId: config.groupId,
             },
           });
+          return true;
         } catch (error) {
           logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
@@ -72,7 +73,7 @@ export const createProvider = (
           throw error;
         }
       },
-      disconnect: async (): Promise<void> => {
+      disconnect: async (): Promise<boolean> => {
         try {
           await consumer.disconnect();
           logging.events.logEvent(logger)(logging.LogLevel.INFO, {
@@ -85,27 +86,21 @@ export const createProvider = (
               groupId: config.groupId,
             },
           });
+          return true;
         } catch (error) {
           logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer disconnection failed',
             eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
+            eventData: { error },
           });
           throw error;
         }
       },
-      subscribe: async (): Promise<void> => {
+      start: async (): Promise<boolean> => {
         try {
-          await consumer.subscribe({ topic: config.topic });
-          await consumer.run({
-            // TODO: other config options
-            eachMessage: async (payload: EachMessagePayload) => {
-              await config.handleMessage(payload);
-            },
-          });
+          await consumer.subscribe(config.subscribeTopics);
+          await consumer.run(config.runConfig);
           logging.events.logEvent(logger)(logging.LogLevel.INFO, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer subscribed',
@@ -114,17 +109,30 @@ export const createProvider = (
               clientId: config.clientId,
               brokers: config.brokers,
               groupId: config.groupId,
-              topic: config.topic,
+              topics: config.subscribeTopics.topics,
             },
           });
+          return true;
         } catch (error) {
           logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer subscription failed',
             eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
+            eventData: { error },
+          });
+          throw error;
+        }
+      },
+      stop: async (): Promise<boolean> => {
+        try {
+          await consumer.stop();
+          return true;
+        } catch (error) {
+          logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
+            eventType: 'kafka consumer',
+            eventName: 'kafka consumer stop failed',
+            eventTimestamp: new Date(),
+            eventData: { error },
           });
           throw error;
         }

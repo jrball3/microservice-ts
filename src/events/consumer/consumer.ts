@@ -2,7 +2,8 @@
  * The event consumer
  */
 export interface EventConsumer {
-  connect: () => Promise<void>;
-  disconnect: () => Promise<void>;
-  subscribe: () => Promise<void>;
+  connect: () => Promise<boolean>;
+  disconnect: () => Promise<boolean>;
+  start: () => Promise<boolean>;
+  stop: () => Promise<boolean>;
 }
