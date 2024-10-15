@@ -9,4 +9,5 @@ export type MicroserviceConfig = {
   http: http.config.HttpConfig;
   logging: logging.config.LoggingConfig;
   eventConsumers: Record<string, events.consumer.config.EventConsumerConfig>
+  eventProducers: Record<string, events.producer.config.EventProducerConfig>
 };

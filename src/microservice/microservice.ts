@@ -16,7 +16,7 @@ export type Microservice = {
 export const createProvider = (): Provider<Dependencies, Microservice> => {
   return {
     resolve: (dependencies): Microservice => {
-      const { httpServer, logger, eventConsumers } = dependencies;
+      const { httpServer, logger, eventConsumers, eventProducers } = dependencies;
       if (httpServer) {
         if (!logger) {
           throw new Error('Logging provider is required for HTTP microservices');
@@ -38,6 +38,11 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
               await consumer.start();
             }
           }
+          if (eventProducers) {
+            for (const producer of Object.values(eventProducers)) {
+              await producer.connect();
+            }
+          }
           return Promise.resolve(true);
         },
         stop: async (): Promise<boolean> => {
@@ -48,6 +53,11 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
             for (const consumer of Object.values(eventConsumers)) {
               await consumer.stop();
               await consumer.disconnect();
+            }
+          }
+          if (eventProducers) {
+            for (const producer of Object.values(eventProducers)) {
+              await producer.disconnect();
             }
           }
           return Promise.resolve(true);

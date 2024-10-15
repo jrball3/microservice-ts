@@ -5,7 +5,7 @@ import express from 'express';
 import supertest from 'supertest';
 import sinon from 'sinon';
 import { di, events, http, logger, microservice as microserviceNS } from '../src';
-import { Kafka, Consumer } from 'kafkajs';
+import { Kafka, Consumer, Producer } from 'kafkajs';
 
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
@@ -16,6 +16,12 @@ describe('Microservice', () => {
     subscribe: sinon.stub().resolves(),
     run: sinon.stub().resolves(),
     stop: sinon.stub().resolves(),
+  };
+
+  const mockProducer = {
+    connect: sinon.stub().resolves(),
+    disconnect: sinon.stub().resolves(),
+    send: sinon.stub().resolves(),
   };
 
   before('creates a microservice', async () => {
@@ -241,15 +247,27 @@ describe('Microservice', () => {
       },
     };
     const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConfig);
-    const kafkaConsumersProvider = {
-      resolve: (dependencies: events.consumer.EventConsumerDependencies): Record<string, events.consumer.EventConsumer> => ({
-        consumer: kafkaConsumerProvider.resolve(dependencies),
-      }),
-    };
+    const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
+      kafkaConsumer: kafkaConsumerProvider,
+    });
     di.register('eventConsumers', ['logger'], kafkaConsumersProvider);
 
+    sinon.stub(Kafka.prototype, 'producer').returns(mockProducer as unknown as Producer);
+    const kafkaProducerConfig: events.producer.config.EventProducerConfig = {
+      config: {
+        clientId: 'my-app',
+        brokers: ['localhost:9092'],
+      },
+      producerConfig: {},
+    };
+    const kafkaProducerProvider = events.producer.providers.kafka.createProvider(kafkaProducerConfig);
+    const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
+      kafkaProducer: kafkaProducerProvider,
+    });
+    di.register('eventProducers', ['logger'], kafkaProducersProvider);
+    
     const microserviceProvider = microserviceNS.createProvider();
-    di.register('microservice', ['httpServer', 'logger', 'eventConsumers'], microserviceProvider);
+    di.register('microservice', ['httpServer', 'logger', 'eventConsumers', 'eventProducers'], microserviceProvider);
     microservice = await di.resolve('microservice', microserviceProvider);
     await microservice.start();
   });
@@ -258,6 +276,7 @@ describe('Microservice', () => {
     await microservice.stop();
     assert.isTrue(mockConsumer.stop.calledOnce);
     assert.isTrue(mockConsumer.disconnect.calledOnce);
+    assert.isTrue(mockProducer.disconnect.calledOnce);
     sinon.restore();
   });
 

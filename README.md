@@ -9,6 +9,7 @@ Microservice-TS is a declarative, functional library enabling agile creation of 
 - **Declarative Configuration**: Define your microservice structure and behavior using a simple, declarative configuration.
 - **HTTP Support**: Built-in support for HTTP servers with Express integration.
 - **Event Consumers**: Built-in support for Kafka event consumers.
+- **Event Producers**: Built-in support for Kafka event producers.
 - **Dependency Injection**: A lightweight DI container for managing service dependencies.
 - **Logging**: Flexible logging system with configurable log levels.
 - **Request/Response Handling**: Streamlined request processing and response generation.
@@ -121,11 +122,24 @@ const eventConsumers: Record<string, events.consumer.config.EventConsumerConfig>
   },
 };
 
+const eventProducers: Record<string, events.producer.config.EventProducerConfig> = {
+  kafkaProducer: {
+    config: {
+      clientId: 'kafka-producer',
+      brokers: ['localhost:9092'],
+    },
+    producerConfig: {
+      allowAutoTopicCreation: true,
+    },
+  },
+};
+
 // Construct the microservice configuration
 const config: microservice.MicroserviceConfig = {
   http: httpConfig,
   logging: loggingConfig,
   eventConsumers,
+  eventProducers,
 };
 
 // Construct the express app
@@ -158,16 +172,25 @@ if (!kafkaConsumerConfig) {
   throw new Error('Kafka consumer config is not defined');
 }
 const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConsumerConfig);
-const kafkaConsumersProvider = {
-  resolve: (dependencies: events.consumer.EventConsumerDependencies): Record<string, events.consumer.EventConsumer> => ({
-    kafkaConsumer: kafkaConsumerProvider.resolve(dependencies),
-  }),
-};
+const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
+  kafkaConsumer: kafkaConsumerProvider,
+});
 di.register('eventConsumers', ['logger'], kafkaConsumersProvider);
+
+// Construct and register the kafka producers provider
+const kafkaProducerConfig = config.eventProducers.kafkaProducer;
+if (!kafkaProducerConfig) {
+  throw new Error('Kafka producer config is not defined');
+}
+const kafkaProducerProvider = events.producer.providers.kafka.createProvider(kafkaProducerConfig);
+const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
+  kafkaProducer: kafkaProducerProvider,
+});
+di.register('eventProducers', ['logger'], kafkaProducersProvider);
 
 // Construct and register the microservice provider
 const microserviceProvider = microservice.createProvider();
-di.register('microservice', ['httpServer', 'logger', 'eventConsumers'], microserviceProvider);
+di.register('microservice', ['httpServer', 'logger', 'eventConsumers', 'eventProducers'], microserviceProvider);
 
 const main = async (): Promise<void> => {
   // Resolve and start the microservice

@@ -9,4 +9,5 @@ export type Dependencies = {
   httpServer?: http.HttpServer;
   logger?: logging.Logger;
   eventConsumers?: Record<string, events.consumer.EventConsumer>;
+  eventProducers?: Record<string, events.producer.EventProducer>;
 };

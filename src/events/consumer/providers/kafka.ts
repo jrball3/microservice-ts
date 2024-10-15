@@ -140,3 +140,17 @@ export const createProvider = (
     };
   },
 });
+
+/**
+ * Creates a multi-consumer provider
+ */
+export const createMultiProvider = (
+  providers: Record<string, Provider<EventConsumerDependencies, KafkaConsumer>>,
+): Provider<EventConsumerDependencies, Record<string, KafkaConsumer>> => ({
+  resolve: (dependencies: EventConsumerDependencies): Record<string, KafkaConsumer> => {
+    return Object.entries(providers).reduce((acc, [key, provider]) => {
+      acc[key] = provider.resolve(dependencies);
+      return acc;
+    }, {} as Record<string, KafkaConsumer>);
+  },
+});
