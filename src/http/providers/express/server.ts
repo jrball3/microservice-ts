@@ -16,8 +16,8 @@ export const createProvider = (
   app: express.Application,
   config: configNS.HttpConfig,
   opts?: ExpressProviderOpts,
-): Provider<Dependencies, HttpServer> => ({
-  resolve: (dependencies: Dependencies): HttpServer => {
+): Provider<Dependencies, HttpServer> =>
+  (dependencies: Dependencies): HttpServer => {
     routes.apply(dependencies)(config)(app, opts);
     let server: nodehttp.Server | undefined;
 
@@ -50,5 +50,4 @@ export const createProvider = (
       start,
       stop,
     };
-  },
-});
+  };

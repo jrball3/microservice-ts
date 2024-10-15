@@ -24,8 +24,8 @@ export interface KafkaProducer extends EventProducer {
  */
 export const createProvider = (
   config: KafkaProducerConfig,
-): Provider<EventProducerDependencies, KafkaProducer> => ({
-  resolve: (dependencies: EventProducerDependencies): KafkaProducer => {
+): Provider<EventProducerDependencies, KafkaProducer> =>
+  (dependencies: EventProducerDependencies): KafkaProducer => {
     const { logger } = dependencies;
 
     const kafka = new Kafka(config.config);
@@ -89,19 +89,17 @@ export const createProvider = (
         }));
       },
     };
-  },
-});
+  };
 
 /**
  * Creates a multi-producer provider
  */
 export const createMultiProvider = (
   providers: Record<string, Provider<EventProducerDependencies, KafkaProducer>>,
-): Provider<EventProducerDependencies, Record<string, KafkaProducer>> => ({
-  resolve: (dependencies: EventProducerDependencies): Record<string, KafkaProducer> => {
+): Provider<EventProducerDependencies, Record<string, KafkaProducer>> =>
+  (dependencies: EventProducerDependencies): Record<string, KafkaProducer> => {
     return Object.entries(providers).reduce((acc, [key, provider]) => {
-      acc[key] = provider.resolve(dependencies);
+      acc[key] = provider(dependencies);
       return acc;
     }, {} as Record<string, KafkaProducer>);
-  },
-});
+  };

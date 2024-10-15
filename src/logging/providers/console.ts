@@ -67,6 +67,5 @@ const buildLogger = (_dependencies: Dependencies) =>
  */
 export const createProvider = (
   config: logConfig.LoggingConfig,
-): Provider<Dependencies, Logger> => ({
-  resolve: (dependencies: Dependencies) => buildLogger(dependencies)(config),
-});
+): Provider<Dependencies, Logger> =>
+  (dependencies: Dependencies) => buildLogger(dependencies)(config);

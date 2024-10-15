@@ -29,8 +29,8 @@ export interface KafkaConsumer extends EventConsumer {
  */
 export const createProvider = (
   config: KafkaConsumerConfig,
-): Provider<EventConsumerDependencies, KafkaConsumer> => ({
-  resolve: (dependencies: EventConsumerDependencies): KafkaConsumer => {
+): Provider<EventConsumerDependencies, KafkaConsumer> =>
+  (dependencies: EventConsumerDependencies): KafkaConsumer => {
     const { logger } = dependencies;
 
     const kafkaConfig: KafkaConfig = {
@@ -138,19 +138,17 @@ export const createProvider = (
         }
       },
     };
-  },
-});
+  };
 
 /**
  * Creates a multi-consumer provider
  */
 export const createMultiProvider = (
   providers: Record<string, Provider<EventConsumerDependencies, KafkaConsumer>>,
-): Provider<EventConsumerDependencies, Record<string, KafkaConsumer>> => ({
-  resolve: (dependencies: EventConsumerDependencies): Record<string, KafkaConsumer> => {
+): Provider<EventConsumerDependencies, Record<string, KafkaConsumer>> =>
+  (dependencies: EventConsumerDependencies): Record<string, KafkaConsumer> => {
     return Object.entries(providers).reduce((acc, [key, provider]) => {
-      acc[key] = provider.resolve(dependencies);
+      acc[key] = provider(dependencies);
       return acc;
     }, {} as Record<string, KafkaConsumer>);
-  },
-});
+  };

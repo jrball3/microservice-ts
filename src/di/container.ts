@@ -75,7 +75,7 @@ export const resolve = async <D, T>(name: string, provider: Provider<D, T>): Pro
   const singleton = getSingleton<T>(name);
   if (!singleton) {
     const deps = await resolveDependencies<D>(name);
-    const instance = await provider.resolve(deps);
+    const instance = await provider(deps);
     setSingleton(name, instance);
     return instance;
   }
