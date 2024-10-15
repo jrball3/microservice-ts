@@ -1,12 +1,22 @@
 import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
-import { di, http, logger, microservice as microserviceNS } from '../src';
+import sinon from 'sinon';
+import { di, events, http, logger, microservice as microserviceNS } from '../src';
+import { Kafka, Consumer } from 'kafkajs';
 
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
+  const mockConsumer = {
+    connect: sinon.stub().resolves(),
+    disconnect: sinon.stub().resolves(),
+    subscribe: sinon.stub().resolves(),
+    run: sinon.stub().resolves(),
+  };
+
   before('creates a microservice', async () => {
+    
     const routes: http.providers.express.ExpressRouteDefinition[] = [
       {
         path: '/200',
@@ -217,14 +227,37 @@ describe('Microservice', () => {
     const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
     di.register('httpServer', ['logger'], httpProvider);
 
-    const provider = microserviceNS.createProvider();
-    di.register('microservice', ['httpServer', 'logger'], provider);
-    microservice = await di.resolve('microservice', provider);
+    sinon.stub(Kafka.prototype, 'consumer').returns(mockConsumer as unknown as Consumer);
+    const kafkaConfig: events.consumer.providers.kafka.KafkaConsumerConfig = {
+      clientId: 'my-app',
+      brokers: ['localhost:9092'],
+      groupId: 'my-group',
+      topic: 'my-topic',
+      handleMessage: sinon.stub().resolves(true),
+    };
+    const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConfig);
+    const kafkaConsumersProvider = {
+      resolve: (dependencies: events.consumer.EventConsumerDependencies): Record<string, events.consumer.EventConsumer> => ({
+        consumer: kafkaConsumerProvider.resolve(dependencies),
+      }),
+    };
+    di.register('eventConsumers', ['logger'], kafkaConsumersProvider);
+
+    const microserviceProvider = microserviceNS.createProvider();
+    di.register('microservice', ['httpServer', 'logger', 'eventConsumers'], microserviceProvider);
+    microservice = await di.resolve('microservice', microserviceProvider);
     await microservice.start();
   });
 
   after('stops the server', async () => {
     await microservice.stop();
+    sinon.restore();
+  });
+
+  it('connects and subscribes to Kafka topic', async () => {
+    assert.isTrue(mockConsumer.connect.calledOnce);
+    assert.isTrue(mockConsumer.subscribe.calledOnce);
+    assert.deepEqual(mockConsumer.subscribe.firstCall.args[0], { topic: 'my-topic' });
   });
 
   it('get responds with Hello, world!', async () => {

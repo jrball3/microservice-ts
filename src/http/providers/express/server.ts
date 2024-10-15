@@ -24,7 +24,7 @@ export const createProvider = (
     const start = async (): Promise<void> => {
       return new Promise((resolve) => {
         server = app.listen(config.port, config.host, () => {
-          console.log(`Server is running on port ${config.port}`);
+          dependencies.logger.info(`Server is running on port ${config.port}`);
           resolve();
         });
       });
