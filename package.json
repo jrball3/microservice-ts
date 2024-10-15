@@ -33,6 +33,7 @@
   "dependencies": {
     "@types/express": "^5.0.0",
     "@types/kafkajs": "^1.8.2",
+    "awilix": "^12.0.2",
     "express": "^4.21.1",
     "kafkajs": "^2.2.4",
     "uuid": "^10.0.0"

@@ -1,6 +1,4 @@
 /**
  * A provider for a dependency.
  */
-export interface Provider<D, T> {
-  (dependencies: D): T;
-}
+export type Provider<D, T> = (dependencies: D) => T;

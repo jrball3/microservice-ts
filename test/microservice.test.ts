@@ -4,8 +4,9 @@ import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
 import sinon from 'sinon';
-import { di, events, http, logger, microservice as microserviceNS } from '../src';
+import { events, http, logger, microservice as microserviceNS } from '../src';
 import { Kafka, Consumer, Producer } from 'kafkajs';
+import { asFunction, createContainer } from 'awilix';
 
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
@@ -24,8 +25,12 @@ describe('Microservice', () => {
     send: sinon.stub().resolves(),
   };
 
-  before('creates a microservice', async () => {
-    
+  before('stub kafka', () => {
+    sinon.stub(Kafka.prototype, 'consumer').returns(mockConsumer as unknown as Consumer);
+    sinon.stub(Kafka.prototype, 'producer').returns(mockProducer as unknown as Producer);
+  });
+
+  before('create a microservice', async () => {
     const routes: http.providers.express.ExpressRouteDefinition[] = [
       {
         path: '/200',
@@ -223,7 +228,6 @@ describe('Microservice', () => {
       logging: loggingConfig,
     };
     const loggerProvider = logger.providers.console.createProvider(config.logging);
-    di.register('logger', [], loggerProvider);
 
     const app = express();
     const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
@@ -234,9 +238,7 @@ describe('Microservice', () => {
     });
     const opts = { extractRequestContext };
     const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
-    di.register('httpServer', ['logger'], httpProvider);
 
-    sinon.stub(Kafka.prototype, 'consumer').returns(mockConsumer as unknown as Consumer);
     const kafkaConfig: events.consumer.providers.kafka.KafkaConsumerConfig = {
       clientId: 'my-app',
       brokers: ['localhost:9092'],
@@ -250,9 +252,7 @@ describe('Microservice', () => {
     const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
       kafkaConsumer: kafkaConsumerProvider,
     });
-    di.register('eventConsumers', ['logger'], kafkaConsumersProvider);
 
-    sinon.stub(Kafka.prototype, 'producer').returns(mockProducer as unknown as Producer);
     const kafkaProducerConfig: events.producer.config.EventProducerConfig = {
       config: {
         clientId: 'my-app',
@@ -264,11 +264,16 @@ describe('Microservice', () => {
     const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
       kafkaProducer: kafkaProducerProvider,
     });
-    di.register('eventProducers', ['logger'], kafkaProducersProvider);
-    
     const microserviceProvider = microserviceNS.createProvider();
-    di.register('microservice', ['httpServer', 'logger', 'eventConsumers', 'eventProducers'], microserviceProvider);
-    microservice = await di.resolve('microservice', microserviceProvider);
+    const container = createContainer<microserviceNS.Dependencies & { microservice: microserviceNS.Microservice }>();
+    container.register({
+      logger: asFunction(loggerProvider).singleton(),
+      httpServer: asFunction(httpProvider).singleton(),
+      eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
+      eventProducers: asFunction(kafkaProducersProvider).singleton(),
+      microservice: asFunction(microserviceProvider).singleton(),
+    });
+    microservice = container.resolve<microserviceNS.Microservice>('microservice');
     await microservice.start();
   });
 

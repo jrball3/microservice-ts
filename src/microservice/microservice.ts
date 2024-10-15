@@ -1,4 +1,4 @@
-import { Provider } from '../di/provider';
+import { Provider } from '../di';
 import { Dependencies } from './dependencies';
 
 /**

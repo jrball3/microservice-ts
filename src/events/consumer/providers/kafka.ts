@@ -1,8 +1,8 @@
 import { Consumer, ConsumerConfig, ConsumerRunConfig, ConsumerSubscribeTopics, Kafka, KafkaConfig } from 'kafkajs';
-import { Provider } from '../../../di/provider';
 import * as logging from '../../../logging';
 import { EventConsumer } from '../consumer';
 import { EventConsumerDependencies } from '../dependencies';
+import { Provider } from '../../../di';
 
 /**
  * The Kafka consumer configuration
@@ -43,6 +43,9 @@ export const createProvider = (
     };
 
     const kafka = new Kafka(kafkaConfig);
+
+    // TODO: Wrap the consumer runConfig such that the dependencies are provided
+    // to the eachMessage and eachBatch functions
     const consumer = kafka.consumer(consumerConfig);
 
     return {
