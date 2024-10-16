@@ -1,7 +1,7 @@
 import { Producer } from 'kafkajs';
 import { EventProducerDependencies, ProducerOptions, ProducerResult } from '../..';
-import * as logging from '../../../../logging';
 import { KafkaProducer, KafkaProducerConfig } from './kafka';
+import { observability } from '../../../..';
 
 /**
  * Creates a Kafka producer from a KafkaJS producer
@@ -12,36 +12,55 @@ import { KafkaProducer, KafkaProducerConfig } from './kafka';
  */
 export const fromProducer = (dependencies: EventProducerDependencies) =>
   (config: KafkaProducerConfig, producer: Producer): KafkaProducer => {
-    const { logger } = dependencies;
-    const logEvent = logging.events.logEvent(logger);
+    const { observabilityService } = dependencies;
     return {
       producer,
       connect: async (): Promise<boolean> => {
         try {
           await producer.connect();
-          logEvent(logging.LogLevel.INFO, {
-            eventType: 'kafka producer',
-            eventName: 'kafka producer connected',
-            eventTimestamp: new Date(),
-            eventData: {
-              config: config,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.connect.success',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventTimestamp: new Date(),
+              eventData: {
+                config: config,
+              },
+            }),
+          );
           return true;
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka producer',
-            eventName: 'kafka producer connection failed',
-            eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.connect.error',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventTimestamp: new Date(),
+              eventData: {
+                error: error,
+              },
+            }),
+          );
           throw error;
         }
       },
       disconnect: async (): Promise<boolean> => {
         await producer.disconnect();
+        observabilityService.emit(
+          observability.event({
+            eventType: observability.EventType.NOOP,
+            eventName: 'kafka.producer.disconnect.success',
+            eventScope: 'kafka.producer',
+            eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+            eventTimestamp: new Date(),
+            eventData: {
+              config: config,
+            },
+          }),
+        );
         return true;
       },
       send: async (
@@ -58,19 +77,38 @@ export const fromProducer = (dependencies: EventProducerDependencies) =>
             acks: options?.acks,
             timeout: options?.timeout,
           });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.send.success',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                topic,
+                key,
+                value,
+                acks: options?.acks,
+                timeout: options?.timeout,
+              },
+            }),
+          );
           return {
             success: result[0]?.errorCode === 0,
             ...result[0],
           };
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka producer',
-            eventName: 'kafka producer send failed',
-            eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.send.error',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventTimestamp: new Date(),
+              eventData: {
+                error: error,
+              },
+            }),
+          );
           throw error;
         }
       },
@@ -87,19 +125,38 @@ export const fromProducer = (dependencies: EventProducerDependencies) =>
             acks: options?.acks,
             timeout: options?.timeout,
           });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.sendBatch.success',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                topic,
+                key,
+                messages,
+                acks: options?.acks,
+                timeout: options?.timeout,
+              },
+            }),
+          );
           return result.map((r) => ({
             success: r.errorCode === 0,
             ...r,
           }));
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka producer',
-            eventName: 'kafka producer send batch failed',
-            eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.producer.sendBatch.error',
+              eventScope: 'kafka.producer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventTimestamp: new Date(),
+              eventData: {
+                error: error,
+              },
+            }),
+          );
           throw error;
         }
       },

@@ -1,7 +1,6 @@
+import { asFunction, createContainer } from 'awilix';
 import express from 'express';
-import { createContainer, asFunction } from 'awilix';
-import { http, logger, microservice, messaging } from '..';
-
+import { http, logger, messaging, microservice, observability } from '..';
 
 const createApp = (): express.Application => {
   // Construct the express app
@@ -119,9 +118,18 @@ const createEventConsumers = (): Record<string, messaging.consumer.config.EventC
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: (_dependencies: messaging.consumer.Dependencies) => 
+      eachMessage: (dependencies: messaging.consumer.Dependencies) => 
         async (message) => {
-          console.log(message);
+          dependencies.observabilityService.emit({
+            eventType: observability.EventType.READ,
+            eventName: 'event.consumer.message.read',
+            eventSeverity: observability.eventSeverity.EventSeverity.INFO,
+            eventScope: 'event.consumer',
+            eventTimestamp: new Date(),
+            eventData: {
+              message,
+            },
+          });
         },
     },
   },
@@ -196,8 +204,16 @@ export const resolveMicroservice = (
     kafkaProducer: kafkaProducerProvider,
   });
 
+  // Construct the observability service provider
+  const observabilityProvider = observability.providers.service.createProvider();
+
   // Construct the microservice provider
-  const microserviceProvider = microservice.createProvider();
+  const onStart = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
+  const onStop = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
+  const microserviceProvider = microservice.createProvider(
+    onStart,
+    onStop,
+  );
   const container = createContainer<microservice.Dependencies & { microservice: microservice.Microservice }>();
   
   // Register providers
@@ -206,6 +222,7 @@ export const resolveMicroservice = (
     httpServer: asFunction(httpProvider).singleton(),
     eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
     eventProducers: asFunction(kafkaProducersProvider).singleton(),
+    observabilityService: asFunction(observabilityProvider).singleton(),
     microservice: asFunction(microserviceProvider).singleton(),
   });
   

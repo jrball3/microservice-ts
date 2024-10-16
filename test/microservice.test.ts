@@ -4,31 +4,37 @@ import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
 import sinon from 'sinon';
-import { di, http, logger, messaging, microservice as microserviceNS } from '../src';
+import { di, http, logger, messaging, microservice as microserviceNS, observability } from '../src';
 import { Kafka, Consumer, Producer } from 'kafkajs';
 import { asFunction, createContainer } from 'awilix';
 
 type User = {
   id: string;
   name: string;
-}
+};
 
 type Database = {
   findUser: (id: string) => Promise<User | undefined>;
-}
+};
 
-const createDatabaseProvider = (): di.Provider<{}, Database> => () => ({
-  findUser: async (id: string) => {
-    return {
-      id,
-      name: 'John Doe',
-    };
-  },
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
+
+const createDatabaseProvider = (_config: DatabaseConfig): di.Provider<unknown, Database> => (): Database => ({
+  findUser: async (id: string): Promise<User | undefined> => ({
+    id,
+    name: 'John Doe',
+  }),
 });
 
 type ExtendedDependencies = {
   database: Database;
-}
+};
 
 type ExtendedMicroserviceDependencies = microserviceNS.Dependencies & ExtendedDependencies;
 
@@ -248,11 +254,19 @@ describe('Microservice', () => {
       routes,
     };
     const loggingConfig: logger.config.LoggingConfig = {
-      level: logger.LogLevel.TRACE,
+      level: logger.LogLevel.INFO,
+    };
+    const databaseConfig: DatabaseConfig = {
+      host: 'localhost',
+      port: 5432,
+      user: 'postgres',
+      password: 'postgres',
+      database: 'postgres',
     };
     const config = {
       http: httpConfig,
       logging: loggingConfig,
+      database: databaseConfig,
     };
     const loggerProvider = logger.providers.console.createProvider(config.logging);
 
@@ -291,8 +305,12 @@ describe('Microservice', () => {
     const kafkaProducersProvider = messaging.producer.providers.kafka.createMultiProvider({
       kafkaProducer: kafkaProducerProvider,
     });
-    const databaseProvider = createDatabaseProvider();
-    const microserviceProvider = microserviceNS.createProvider();
+    const databaseProvider = createDatabaseProvider(config.database);
+    const observabilityProvider = observability.providers.service.createProvider();
+    const microserviceProvider = microserviceNS.createProvider(
+      () => Promise.resolve(true),
+      () => Promise.resolve(true),
+    );
     const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microserviceNS.Microservice }>();
     container.register({
       logger: asFunction(loggerProvider).singleton(),
@@ -300,6 +318,7 @@ describe('Microservice', () => {
       eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
       eventProducers: asFunction(kafkaProducersProvider).singleton(),
       microservice: asFunction(microserviceProvider).singleton(),
+      observabilityService: asFunction(observabilityProvider).singleton(),
       database: asFunction(databaseProvider).singleton(),
     });
     microservice = container.resolve<microserviceNS.Microservice>('microservice');

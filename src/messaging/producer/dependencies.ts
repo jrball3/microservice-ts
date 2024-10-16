@@ -1,5 +1,5 @@
-import * as logging from '../../logging';
+import { observability } from '../..';
 
 export type EventProducerDependencies = {
-  logger: logging.Logger;
+  observabilityService: observability.ObservabilityService;
 };

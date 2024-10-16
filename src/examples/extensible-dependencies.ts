@@ -1,17 +1,33 @@
 import express from 'express';
 import { createContainer, asFunction } from 'awilix';
-import { di, http, logger, microservice, messaging } from '..';
+import { di, http, logger, microservice, messaging, observability } from '..';
 
 type User = {
   id: string;
   name: string;
-}
+};
 
 type Database = {
+  initialize: () => Promise<boolean>;
+  shutdown: () => Promise<boolean>;
   findUser: (id: string) => Promise<User | undefined>;
-}
+};
 
-const createDatabaseProvider: di.Provider<{}, Database> = () =>({
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
+
+const createDatabaseProvider = (_config: DatabaseConfig): di.Provider<unknown, Database> => () => ({
+  initialize: (): Promise<boolean> => {
+    return Promise.resolve(true);
+  },
+  shutdown: (): Promise<boolean> => {
+    return Promise.resolve(true);
+  },
   findUser: async (id: string): Promise<User | undefined> => {
     return { id, name: 'John Doe' };
   },
@@ -26,6 +42,18 @@ type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 type ExtendedMicroserviceDependencies = microservice.Dependencies & ExtendedDependencies;
 
 type ExtendedEventConsumerDependencies = messaging.consumer.Dependencies & ExtendedDependencies;
+
+type ExtendedMicroserviceConfig = microservice.MicroserviceConfig<ExtendedHttpDependencies, ExtendedEventConsumerDependencies> & {
+  database: DatabaseConfig;
+};
+
+const createDatabaseConfig = (): DatabaseConfig => ({
+  host: 'localhost',
+  port: 5432,
+  user: 'postgres',
+  password: 'postgres',
+  database: 'postgres',
+});
 
 const createApp = (): express.Application => {
   // Construct the express app
@@ -142,9 +170,18 @@ const createEventConsumers = (): Record<string, messaging.consumer.config.EventC
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: (_dependencies: ExtendedEventConsumerDependencies) => 
+      eachMessage: (dependencies: ExtendedEventConsumerDependencies) => 
         async (message) => {
-          console.log(message);
+          dependencies.observabilityService.emit({
+            eventType: observability.EventType.READ,
+            eventName: 'event.consumer.message.read',
+            eventSeverity: observability.eventSeverity.EventSeverity.INFO,
+            eventScope: 'event.consumer',
+            eventTimestamp: new Date(),
+            eventData: {
+              message,
+            },
+          });
         },
     },
   },
@@ -163,21 +200,22 @@ const createEventProducers = (): Record<string, messaging.producer.config.EventP
 });
 
 const createMicroserviceConfig = (
+  databaseConfig: DatabaseConfig,
   httpConfig: http.config.HttpConfig<ExtendedHttpDependencies>,
   loggingConfig: logger.config.LoggingConfig,
   eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig<ExtendedEventConsumerDependencies>>,
   eventProducers: Record<string, messaging.producer.config.EventProducerConfig>,
-): microservice.MicroserviceConfig<ExtendedHttpDependencies, ExtendedEventConsumerDependencies> => ({
+): ExtendedMicroserviceConfig => ({
+  database: databaseConfig,
   http: httpConfig,
   logging: loggingConfig,
   eventConsumers,
   eventProducers,
 });
 
-
 export const resolveMicroservice = (
   app: express.Application,
-  config: microservice.MicroserviceConfig<ExtendedHttpDependencies, ExtendedEventConsumerDependencies>,
+  config: ExtendedMicroserviceConfig,
 ): microservice.Microservice => {
   // Construct a function that extracts request context from the request
   const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
@@ -215,18 +253,35 @@ export const resolveMicroservice = (
     kafkaProducer: kafkaProducerProvider,
   });
 
+  // Construct the database provider
+  const databaseProvider = createDatabaseProvider(config.database);
+
+  // Construct the observability service provider
+  const observabilityProvider = observability.providers.service.createProvider();
+
   // Construct the microservice provider
-  const microserviceProvider = microservice.createProvider();
-  const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microservice.Microservice }>();
+  const microserviceProvider: di.Provider<ExtendedMicroserviceDependencies, microservice.Microservice> =
+    microservice.createProvider<ExtendedMicroserviceDependencies>(
+      async (dependencies: ExtendedMicroserviceDependencies) => {
+        await dependencies.database.initialize();
+        return true;
+      },
+      async (dependencies: ExtendedMicroserviceDependencies) => {
+        await dependencies.database.shutdown();
+        return true;
+      },
+    );
   
   // Register providers
+  const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microservice.Microservice }>();
   container.register({
     logger: asFunction(loggerProvider).singleton(),
     httpServer: asFunction(httpProvider).singleton(),
     eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
     eventProducers: asFunction(kafkaProducersProvider).singleton(),
+    observabilityService: asFunction(observabilityProvider).singleton(),
+    database: asFunction(databaseProvider).singleton(),
     microservice: asFunction(microserviceProvider).singleton(),
-    database: asFunction(createDatabaseProvider).singleton(),
   });
   
   // Resolve the microservice
@@ -236,11 +291,12 @@ export const resolveMicroservice = (
 const main = async (): Promise<void> => {
   const app = createApp();
   const routes = createRoutes();
+  const databaseConfig = createDatabaseConfig();
   const httpConfig = createHttpConfig(routes);
   const loggingConfig = createLoggingConfig();
   const eventConsumers = createEventConsumers();
   const eventProducers = createEventProducers();
-  const microserviceConfig = createMicroserviceConfig(httpConfig, loggingConfig, eventConsumers, eventProducers);
+  const microserviceConfig = createMicroserviceConfig(databaseConfig, httpConfig, loggingConfig, eventConsumers, eventProducers);
   const service = resolveMicroservice(app, microserviceConfig);
   await service.start();
 };

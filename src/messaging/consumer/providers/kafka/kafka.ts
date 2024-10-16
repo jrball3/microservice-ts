@@ -9,14 +9,14 @@ import { fromConsumer } from './utils';
  * Accepts the dependencies and returns an each batch handler
  */
 export type WrappedEachBatchHandler<D extends Dependencies = Dependencies> = (dependencies: D) =>
-  (payload: EachBatchPayload) => Promise<void>;
+(payload: EachBatchPayload) => Promise<void>;
 
 /**
  * The wrapped each message handler
  * Accepts the dependencies and returns an each message handler
  */
 export type WrappedEachMessageHandler<D extends Dependencies = Dependencies> = (dependencies: D) =>
-  (payload: EachMessagePayload) => Promise<void>;
+(payload: EachMessagePayload) => Promise<void>;
 
 /**
  * The wrapped consumer run config
@@ -56,18 +56,18 @@ export interface KafkaConsumer extends EventConsumer {
 export const createProvider = <D extends Dependencies = Dependencies>(
   config: KafkaConsumerConfig<D>,
 ): Provider<D, KafkaConsumer> =>
-  (dependencies: D): KafkaConsumer => {
-    const kafkaConfig: KafkaConfig = {
-      clientId: config.clientId,
-      brokers: config.brokers,
+    (dependencies: D): KafkaConsumer => {
+      const kafkaConfig: KafkaConfig = {
+        clientId: config.clientId,
+        brokers: config.brokers,
+      };
+      const consumerConfig: ConsumerConfig = {
+        groupId: config.groupId,
+      };
+      const kafka = new Kafka(kafkaConfig);
+      const consumer = kafka.consumer(consumerConfig);
+      return fromConsumer(dependencies)(config, consumer);
     };
-    const consumerConfig: ConsumerConfig = {
-      groupId: config.groupId,
-    };
-    const kafka = new Kafka(kafkaConfig);
-    const consumer = kafka.consumer(consumerConfig);
-    return fromConsumer(dependencies)(config, consumer);
-  };
 
 /**
  * Creates a multi-consumer provider
@@ -75,12 +75,12 @@ export const createProvider = <D extends Dependencies = Dependencies>(
 export const createMultiProvider = <D extends Dependencies = Dependencies>(
   providers: Record<string, Provider<D, KafkaConsumer>>,
 ): Provider<D, Record<string, KafkaConsumer>> =>
-  (dependencies: D): Record<string, KafkaConsumer> => (
-    Object.entries(providers).reduce(
-      (acc, [key, provider]) => {
-        acc[key] = provider(dependencies);
-        return acc;
-      },
-      {} as Record<string, KafkaConsumer>,
-    )
-  );
+    (dependencies: D): Record<string, KafkaConsumer> => (
+      Object.entries(providers).reduce(
+        (acc, [key, provider]) => {
+          acc[key] = provider(dependencies);
+          return acc;
+        },
+        {} as Record<string, KafkaConsumer>,
+      )
+    );

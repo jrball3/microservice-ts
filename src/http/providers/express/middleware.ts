@@ -1,5 +1,5 @@
 import express from 'express';
-import * as logging from '../../../logging';
+import { observability } from '../../..';
 import * as configNS from '../../config';
 import { Dependencies } from '../../dependencies';
 import { toErrorResponse } from '../../errors';
@@ -17,12 +17,12 @@ type WrapMiddlewareDependencies<D extends Dependencies = Dependencies> = {
   config: configNS.HttpConfig<D>;
   context?: RequestContext;
   dependencies: D;
-  logger: logging.Logger;
+  observabilityService: observability.ObservabilityService;
   opts?: optsNS.ExpressProviderOpts;
   route: RouteDefinition<D>;
 };
 
-export const wrapMiddleware = <D extends Dependencies = Dependencies>(deps: WrapMiddlewareDependencies<D>) => 
+export const wrapMiddleware = <D extends Dependencies = Dependencies>(deps: WrapMiddlewareDependencies<D>) =>
   (middleware: express.RequestHandler): express.RequestHandler => {
     return async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try {
@@ -35,4 +35,4 @@ export const wrapMiddleware = <D extends Dependencies = Dependencies>(deps: Wrap
         processResponse(deps)(res, next)(response);
       }
     };
-};
+  };

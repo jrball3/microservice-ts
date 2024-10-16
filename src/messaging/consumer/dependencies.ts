@@ -1,8 +1,8 @@
-import { Logger } from '../../logging/logging';
+import * as observability from '../../observability';
 
 /**
  * The event consumer dependencies
  */
 export type Dependencies = {
-  logger: Logger;
+  observabilityService: observability.ObservabilityService;
 };

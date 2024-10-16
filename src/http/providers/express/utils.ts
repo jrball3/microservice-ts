@@ -16,25 +16,25 @@ export const createRequestContext = <D extends Dependencies = Dependencies>(
   route: RouteDefinition<D>,
   opts?: providers.express.opts.ExpressProviderOpts,
 ) =>
-  (req: express.Request): RequestContext => {
-    const { path, method } = route;
-    const requestId = req.headers['x-request-id']?.[0] ?? utils.requestId.generate();
-    const hostname = os.hostname();
-    const ip = req.ip ?? '';
-    return {
-      requestId,
-      url: req.url,
-      path,
-      hostname,
-      ip,
-      method,
-      timestamp: new Date(),
-      userAgent: req.get('User-Agent'),
-      referer: req.get('Referer'),
-      protocol: req.protocol,
-      originalUrl: req.originalUrl,
-      contentType: req.get('Content-Type'),
-      acceptLanguage: req.get('Accept-Language'),
-      ...(opts?.extractRequestContext?.(req)),
+    (req: express.Request): RequestContext => {
+      const { path, method } = route;
+      const requestId = req.headers['x-request-id']?.[0] ?? utils.requestId.generate();
+      const hostname = os.hostname();
+      const ip = req.ip ?? '';
+      return {
+        requestId,
+        url: req.url,
+        path,
+        hostname,
+        ip,
+        method,
+        timestamp: new Date(),
+        userAgent: req.get('User-Agent'),
+        referer: req.get('Referer'),
+        protocol: req.protocol,
+        originalUrl: req.originalUrl,
+        contentType: req.get('Content-Type'),
+        acceptLanguage: req.get('Accept-Language'),
+        ...(opts?.extractRequestContext?.(req)),
+      };
     };
-  };

@@ -17,8 +17,8 @@ export const apply = <D extends Dependencies = Dependencies>(dependencies: D) =>
       opts?: optsNS.ExpressProviderOpts,
     ): express.Application => {
       config.routes.forEach((route) => {
-        const { logger } = dependencies;
-        const deps = { logger, config, dependencies, route, opts };
+        const { observabilityService } = dependencies;
+        const deps = { observabilityService, config, dependencies, route, opts };
         let wrappedMiddlewares: express.RequestHandler[] = [];
         const rawMiddlewares = middlewareNS.getMiddleware(route) ?? [];
         for (const middlewareFn of rawMiddlewares) {
@@ -26,7 +26,7 @@ export const apply = <D extends Dependencies = Dependencies>(dependencies: D) =>
           wrappedMiddlewares = [...wrappedMiddlewares, wrappedMiddleware];
         }
         const { path, method, handler } = route;
-        const wrapHandlerDeps = { logger, config, dependencies, route, opts };
+        const wrapHandlerDeps = { observabilityService, config, dependencies, route, opts };
         const wrappedHandler = handlerNS.toExpressHandler(wrapHandlerDeps)(handler);
         app[method](path, [...wrappedMiddlewares, wrappedHandler]);
       });

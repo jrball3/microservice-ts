@@ -1,19 +1,19 @@
 import express from 'express';
-import * as logging from '../../../logging';
+import * as observability from '../../../observability';
 import * as configNS from '../../config';
 import { Dependencies } from '../../dependencies';
+import { RouteDefinition } from '../../route-definition';
 import { RouteHandler } from '../../route-handler';
 import * as optsNS from './opts';
-import * as utils from './utils';
-import { processResponse } from './response';
 import { processRequest } from './request';
-import { RouteDefinition } from '../../route-definition';
+import { processResponse } from './response';
+import * as utils from './utils';
 
 /**
  * The dependencies for the toExpressHandler function
  */
 type ToExpressHandlerDependencies<D extends Dependencies = Dependencies> = {
-  logger: logging.Logger;
+  observabilityService: observability.ObservabilityService;
   config: configNS.HttpConfig<D>;
   dependencies: D;
   route: RouteDefinition<D>;

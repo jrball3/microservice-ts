@@ -1,7 +1,7 @@
 import { Consumer } from 'kafkajs';
+import * as observability from '../../../../observability';
 import { Dependencies } from '../../dependencies';
 import { KafkaConsumer, KafkaConsumerConfig } from './kafka';
-import * as logging from '../../../../logging';
 
 /**
  * Creates a Kafka consumer from a consumer
@@ -12,101 +12,149 @@ import * as logging from '../../../../logging';
  */
 export const fromConsumer = <D extends Dependencies = Dependencies>(dependencies: D) =>
   (config: KafkaConsumerConfig<D>, consumer: Consumer): KafkaConsumer => {
-    const { logger } = dependencies;
-    const logEvent = logging.events.logEvent(logger);
+    const { observabilityService } = dependencies;
     return {
       consumer,
       connect: async (): Promise<boolean> => {
         try {
           await consumer.connect();
-          logEvent(logging.LogLevel.INFO, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer connected',
-            eventTimestamp: new Date(),
-            eventData: {
-              clientId: config.clientId,
-              brokers: config.brokers,
-              groupId: config.groupId,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.connect.success',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                clientId: config.clientId,
+                brokers: config.brokers,
+                groupId: config.groupId,
+              },
+            }),
+          );
           return true;
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer connection failed',
-            eventTimestamp: new Date(),
-            eventData: {
-              error: error,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.connect.error',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventData: {
+                error: error,
+              },
+            }),
+          );
           throw error;
         }
       },
       disconnect: async (): Promise<boolean> => {
         try {
           await consumer.disconnect();
-          logEvent(logging.LogLevel.INFO, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer disconnected',
-            eventTimestamp: new Date(),
-            eventData: {
-              clientId: config.clientId,
-              brokers: config.brokers,
-              groupId: config.groupId,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.disconnect.success',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                clientId: config.clientId,
+                brokers: config.brokers,
+                groupId: config.groupId,
+              },
+            }),
+          );
           return true;
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer disconnection failed',
-            eventTimestamp: new Date(),
-            eventData: { error },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.disconnect.error',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventData: { error },
+            }),
+          );
           throw error;
         }
       },
       start: async (): Promise<boolean> => {
         try {
           await consumer.subscribe(config.subscribeTopics);
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.subscribe.success',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                clientId: config.clientId,
+                brokers: config.brokers,
+                groupId: config.groupId,
+                topics: config.subscribeTopics.topics,
+              },
+            }),
+          );
           await consumer.run({
             ...config.runConfig,
             eachBatch: config.runConfig.eachBatch?.(dependencies),
             eachMessage: config.runConfig.eachMessage?.(dependencies),
           });
-          logEvent(logging.LogLevel.INFO, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer started',
-            eventTimestamp: new Date(),
-            eventData: {
-              clientId: config.clientId,
-              brokers: config.brokers,
-              groupId: config.groupId,
-              topics: config.subscribeTopics.topics,
-            },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.run.success',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                clientId: config.clientId,
+                brokers: config.brokers,
+                groupId: config.groupId,
+                topics: config.subscribeTopics.topics,
+              },
+            }),
+          );
           return true;
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer start failed',
-            eventTimestamp: new Date(),
-            eventData: { error },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.start.error',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventData: { error },
+            }),
+          );
           throw error;
         }
       },
       stop: async (): Promise<boolean> => {
         try {
           await consumer.stop();
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.stop.success',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
+              eventData: {
+                clientId: config.clientId,
+                brokers: config.brokers,
+                groupId: config.groupId,
+                topics: config.subscribeTopics.topics,
+              },
+            }),
+          );
           return true;
         } catch (error) {
-          logEvent(logging.LogLevel.ERROR, {
-            eventType: 'kafka consumer',
-            eventName: 'kafka consumer stop failed',
-            eventTimestamp: new Date(),
-            eventData: { error },
-          });
+          observabilityService.emit(
+            observability.event({
+              eventType: observability.EventType.NOOP,
+              eventName: 'kafka.consumer.stop.error',
+              eventScope: 'kafka.consumer',
+              eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
+              eventData: { error },
+            }),
+          );
           throw error;
         }
       },

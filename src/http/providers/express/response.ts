@@ -1,16 +1,15 @@
 import express from 'express';
-import * as events from '../../../events';
-import * as logging from '../../../logging';
 import * as configNS from '../../config';
 import { RequestContext } from '../../request-context';
 import { RouteDefinition } from '../../route-definition';
 import { HandlerResponse } from '../../route-handler';
 import { Dependencies } from '../../dependencies';
+import * as observability from '../../../observability';
 
 type ProcessResponseDependencies<D extends Dependencies = Dependencies> = {
+  observabilityService: observability.ObservabilityService;
   config: configNS.HttpConfig<D>;
   context?: RequestContext;
-  logger: logging.Logger;
   route: RouteDefinition<D>;
 };
 
@@ -25,15 +24,16 @@ const sendResponse = (
 
 const logResponse = <D extends Dependencies = Dependencies>(deps: ProcessResponseDependencies<D>) => 
   (response: HandlerResponse): void => {
-    const { logger, config, route, context } = deps;
+    const { config, route, context } = deps;
     const { method, path } = route;
     const logLevel = config.logging.logResponses[response.statusCode];
     if (logLevel) {
-      logging.events.logEvent(logger)(
-        logLevel,
-        events.event({
-          eventType: 'http response',
-          eventName: `${method} ${path}`,
+      deps.observabilityService.emit(
+        observability.event({
+          eventType: observability.EventType.NOOP,
+          eventSeverity: observability.eventSeverity.fromLogLevel(logLevel),
+          eventName: 'http.response',
+          eventScope: `${method} ${path}`,
           eventData: { ...context, response },
         }),
       );

@@ -1,8 +1,8 @@
-import * as logger from '../logging';
+import * as observability from '../observability';
 
 /**
  * The dependencies for the HTTP module
  */
 export type Dependencies = {
-  logger: logger.Logger;
+  observabilityService: observability.ObservabilityService;
 };

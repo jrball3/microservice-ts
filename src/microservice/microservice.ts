@@ -1,4 +1,5 @@
-import { Provider } from '../di';
+import * as di from '../di';
+import * as observability from '../observability';
 import { Dependencies } from './dependencies';
 
 /**
@@ -13,12 +14,20 @@ export type Microservice = {
  * Creates a microservice provider  
  * @returns A microservice provider
  */
-export const createProvider = (): Provider<Dependencies, Microservice> => {
-  return (dependencies: Dependencies): Microservice => {
-    const { httpServer, logger, eventConsumers, eventProducers } = dependencies;
+export const createProvider = <D extends Dependencies = Dependencies>(
+  onStart: (dependencies: D) => Promise<boolean>,
+  onStop: (dependencies: D) => Promise<boolean>,
+): di.Provider<D, Microservice> => {
+  return (dependencies: D): Microservice => {
+    const { httpServer, logger, eventConsumers, eventProducers, observabilityService } = dependencies;
     if (httpServer) {
       if (!logger) {
         throw new Error('Logging provider is required for HTTP microservices');
+      }
+    }
+    if (observabilityService) {
+      if (logger) {
+        observabilityService.on({}, observability.logging.logEvent(logger));
       }
     }
     if (eventConsumers && Object.keys(eventConsumers).length > 0) {
@@ -42,7 +51,7 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
             await producer.connect();
           }
         }
-        return Promise.resolve(true);
+        return onStart(dependencies);
       },
       stop: async (): Promise<boolean> => {
         if (httpServer) {
@@ -59,7 +68,7 @@ export const createProvider = (): Provider<Dependencies, Microservice> => {
             await producer.disconnect();
           }
         }
-        return Promise.resolve(true);
+        return onStop(dependencies);
       },
     };
   };

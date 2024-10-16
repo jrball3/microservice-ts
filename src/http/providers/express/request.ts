@@ -1,13 +1,12 @@
 import express from 'express';
-import * as events from '../../../events';
-import * as logging from '../../../logging';
+import * as observability from '../../../observability';
 import * as configNS from '../../config';
 import { Dependencies } from '../../dependencies';
 import { toErrorResponse } from '../../errors';
 import { RequestContext } from '../../request-context';
+import { RouteDefinition } from '../../route-definition';
 import { HandlerResponse, Request, RouteHandler } from '../../route-handler';
 import * as optsNS from './opts';
-import { RouteDefinition } from '../../route-definition';
 
 /**
  * Gets the request
@@ -22,8 +21,8 @@ const getRequest = (req: express.Request): Request => {
 /**
  * Dependencies for logging a request
  */
-type LogDependencies<D extends Dependencies = Dependencies> = {
-  logger: logging.Logger;
+type EmitDependencies<D extends Dependencies = Dependencies> = {
+  observabilityService: observability.ObservabilityService;
   config: configNS.HttpConfig<D>;
   route: RouteDefinition<D>;
   context: RequestContext;
@@ -34,16 +33,17 @@ type LogDependencies<D extends Dependencies = Dependencies> = {
  * @param deps - The dependencies
  * @param request - The request
  */
-const logRequest = <D extends Dependencies = Dependencies>(deps: LogDependencies<D>) => (request: Request): void => {
-  const { logger, config, route, context } = deps;
+const emitRequest = <D extends Dependencies = Dependencies>(deps: EmitDependencies<D>) => (request: Request): void => {
+  const { config, route, context } = deps;
   const { method, path } = route;
   const logLevel = config.logging.logRequests[method];
   if (logLevel) {
-    logging.events.logEvent(logger)(
-      logLevel,
-      events.event({
-        eventType: 'http request',
-        eventName: `${method} ${path}`,
+    deps.observabilityService.emit(
+      observability.event({
+        eventType: observability.EventType.NOOP,
+        eventSeverity: observability.eventSeverity.fromLogLevel(logLevel),
+        eventName: 'http.request',
+        eventScope: `${method} ${path}`,
         eventData: { ...context, request },
       }),
     );
@@ -83,8 +83,8 @@ const handleRequest = <D extends Dependencies = Dependencies>(deps: HandleReques
  * Dependencies for processing a request
  */
 type ProcessDependencies<D extends Dependencies = Dependencies> = {
+  observabilityService: observability.ObservabilityService;
   context: RequestContext;
-  logger: logging.Logger;
   config: configNS.HttpConfig<D>;
   dependencies: D;
   route: RouteDefinition<D>;
@@ -100,7 +100,7 @@ export const processRequest = <D extends Dependencies = Dependencies>(deps: Proc
   (handler: RouteHandler<D>) =>
     async (req: express.Request): Promise<HandlerResponse> => {
       const request = getRequest(req);
-      logRequest(deps)(request);
+      emitRequest(deps)(request);
       const handleRequestFn = handleRequest(deps)(handler);
       return handleRequestFn(request);
     };
