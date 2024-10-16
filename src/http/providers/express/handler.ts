@@ -12,11 +12,11 @@ import { RouteDefinition } from '../../route-definition';
 /**
  * The dependencies for the toExpressHandler function
  */
-type ToExpressHandlerDependencies = {
+type ToExpressHandlerDependencies<D extends Dependencies = Dependencies> = {
   logger: logging.Logger;
-  config: configNS.HttpConfig;
-  dependencies: Dependencies;
-  route: RouteDefinition;
+  config: configNS.HttpConfig<D>;
+  dependencies: D;
+  route: RouteDefinition<D>;
   opts?: optsNS.ExpressProviderOpts;
 };
 
@@ -25,8 +25,8 @@ type ToExpressHandlerDependencies = {
  * @param deps - The dependencies
  * @returns - The Express request handler
  */
-export const toExpressHandler = (deps: ToExpressHandlerDependencies) =>
-  (handler: RouteHandler): express.RequestHandler =>
+export const toExpressHandler = <D extends Dependencies = Dependencies>(deps: ToExpressHandlerDependencies<D>) =>
+  (handler: RouteHandler<D>): express.RequestHandler =>
     async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       const { route, opts } = deps;
       const context = utils.createRequestContext(route, opts)(req);

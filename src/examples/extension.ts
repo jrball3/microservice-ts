@@ -1,7 +1,31 @@
 import express from 'express';
 import { createContainer, asFunction } from 'awilix';
-import { http, logger, microservice, messaging } from '..';
+import { di, http, logger, microservice, messaging } from '..';
 
+type User = {
+  id: string;
+  name: string;
+}
+
+type Database = {
+  findUser: (id: string) => Promise<User | undefined>;
+}
+
+const createDatabaseProvider: di.Provider<{}, Database> = () =>({
+  findUser: async (id: string): Promise<User | undefined> => {
+    return { id, name: 'John Doe' };
+  },
+});
+
+type ExtendedDependencies = {
+  database: Database;
+};
+
+type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
+
+type ExtendedMicroserviceDependencies = microservice.Dependencies & ExtendedDependencies;
+
+type ExtendedEventConsumerDependencies = messaging.consumer.Dependencies & ExtendedDependencies;
 
 const createApp = (): express.Application => {
   // Construct the express app
@@ -24,8 +48,7 @@ const createApp = (): express.Application => {
   return app;
 };
 
-
-const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
+const createRoutes = (): http.providers.express.ExpressRouteDefinition<ExtendedHttpDependencies>[] => {
   // Construct some native express middleware for one route
   const getMiddleware = (
     req: express.Request,
@@ -45,7 +68,7 @@ const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
     };
   };
 
-  const parseRequest = (_dependencies: http.Dependencies) =>
+  const parseRequest = (_dependencies: ExtendedHttpDependencies) =>
     (
       _context: http.RequestContext,
       _request: http.routeHandler.Request,
@@ -54,7 +77,7 @@ const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
       data: { message: 'Hello, world!' },
     });
 
-  const handleParsedRequest = (_dependencies: http.Dependencies) =>
+  const handleParsedRequest = (_dependencies: ExtendedHttpDependencies) =>
     async (
       _context: http.RequestContext,
       _request: ParsedRequest,
@@ -63,13 +86,13 @@ const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
       data: { message: 'Hello, world!' },
     });
 
-  const getHandler: http.routeHandler.RouteHandler = http.routeHandler.create(
+  const getHandler: http.routeHandler.RouteHandler<ExtendedHttpDependencies> = http.routeHandler.create(
     parseRequest,
     handleParsedRequest,
   );
 
   // Construct a route for a GET route
-  const getRoute: http.providers.express.ExpressRouteDefinition = {
+  const getRoute: http.providers.express.ExpressRouteDefinition<ExtendedHttpDependencies> = {
     path: '/',
     method: http.HttpMethod.GET,
     middleware: [getMiddleware],
@@ -79,9 +102,9 @@ const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
   return [getRoute];
 };
 
-const createHttpConfig = (routes: http.providers.express.ExpressRouteDefinition[]): http.config.HttpConfig => {
+const createHttpConfig = (routes: http.providers.express.ExpressRouteDefinition<ExtendedHttpDependencies>[]): http.config.HttpConfig<ExtendedHttpDependencies> => {
   // Construct the HTTP server configuration
-  const httpConfig: http.config.HttpConfig = {
+  const httpConfig: http.config.HttpConfig<ExtendedHttpDependencies> = {
     host: 'localhost',
     port: 3000,
     logging: {
@@ -110,7 +133,7 @@ const createLoggingConfig = (): logger.config.LoggingConfig => {
   return loggingConfig;
 };
 
-const createEventConsumers = (): Record<string, messaging.consumer.config.EventConsumerConfig> => ({
+const createEventConsumers = (): Record<string, messaging.consumer.config.EventConsumerConfig<ExtendedEventConsumerDependencies>> => ({
   kafkaConsumer: {
     clientId: 'kafka-consumer',
     brokers: ['localhost:9092'],
@@ -119,7 +142,7 @@ const createEventConsumers = (): Record<string, messaging.consumer.config.EventC
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: (_dependencies: messaging.consumer.EventConsumerDependencies) => 
+      eachMessage: (_dependencies: ExtendedEventConsumerDependencies) => 
         async (message) => {
           console.log(message);
         },
@@ -140,25 +163,21 @@ const createEventProducers = (): Record<string, messaging.producer.config.EventP
 });
 
 const createMicroserviceConfig = (
-  httpConfig: http.config.HttpConfig,
+  httpConfig: http.config.HttpConfig<ExtendedHttpDependencies>,
   loggingConfig: logger.config.LoggingConfig,
-  eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig>,
+  eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig<ExtendedEventConsumerDependencies>>,
   eventProducers: Record<string, messaging.producer.config.EventProducerConfig>,
-): microservice.MicroserviceConfig => {
-  // Construct the microservice configuration
-  const config: microservice.MicroserviceConfig = {
-    http: httpConfig,
-    logging: loggingConfig,
-    eventConsumers,
-    eventProducers,
-  };
-  return config;
-};
+): microservice.MicroserviceConfig<ExtendedHttpDependencies, ExtendedEventConsumerDependencies> => ({
+  http: httpConfig,
+  logging: loggingConfig,
+  eventConsumers,
+  eventProducers,
+});
 
 
 export const resolveMicroservice = (
   app: express.Application,
-  config: microservice.MicroserviceConfig,
+  config: microservice.MicroserviceConfig<ExtendedHttpDependencies, ExtendedEventConsumerDependencies>,
 ): microservice.Microservice => {
   // Construct a function that extracts request context from the request
   const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
@@ -198,7 +217,7 @@ export const resolveMicroservice = (
 
   // Construct the microservice provider
   const microserviceProvider = microservice.createProvider();
-  const container = createContainer<microservice.Dependencies & { microservice: microservice.Microservice }>();
+  const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microservice.Microservice }>();
   
   // Register providers
   container.register({
@@ -207,6 +226,7 @@ export const resolveMicroservice = (
     eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
     eventProducers: asFunction(kafkaProducersProvider).singleton(),
     microservice: asFunction(microserviceProvider).singleton(),
+    database: asFunction(createDatabaseProvider).singleton(),
   });
   
   // Resolve the microservice

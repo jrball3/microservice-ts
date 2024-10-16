@@ -1,5 +1,5 @@
 import { Consumer } from 'kafkajs';
-import { EventConsumerDependencies } from '../../dependencies';
+import { Dependencies } from '../../dependencies';
 import { KafkaConsumer, KafkaConsumerConfig } from './kafka';
 import * as logging from '../../../../logging';
 
@@ -10,8 +10,8 @@ import * as logging from '../../../../logging';
  * @param consumer - The Kafka consumer
  * @returns A Kafka consumer
  */
-export const fromConsumer = (dependencies: EventConsumerDependencies) =>
-  (config: KafkaConsumerConfig, consumer: Consumer): KafkaConsumer => {
+export const fromConsumer = <D extends Dependencies = Dependencies>(dependencies: D) =>
+  (config: KafkaConsumerConfig<D>, consumer: Consumer): KafkaConsumer => {
     const { logger } = dependencies;
     const logEvent = logging.events.logEvent(logger);
     return {

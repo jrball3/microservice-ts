@@ -10,8 +10,8 @@ import * as middlewareNS from './middleware';
  * @param dependencies - The dependencies
  * @returns A function that applies the routes to an Express application
  */
-export const apply = (dependencies: Dependencies) =>
-  (config: configNS.HttpConfig) =>
+export const apply = <D extends Dependencies = Dependencies>(dependencies: D) =>
+  (config: configNS.HttpConfig<D>) =>
     (
       app: express.Application,
       opts?: optsNS.ExpressProviderOpts,

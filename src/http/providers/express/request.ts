@@ -9,19 +9,32 @@ import { HandlerResponse, Request, RouteHandler } from '../../route-handler';
 import * as optsNS from './opts';
 import { RouteDefinition } from '../../route-definition';
 
+/**
+ * Gets the request
+ * @param req - The express request
+ * @returns - The request
+ */
 const getRequest = (req: express.Request): Request => {
   const { headers, params, query, body } = req;
   return { headers, params, query, body };
 };
 
-type LogDependencies = {
+/**
+ * Dependencies for logging a request
+ */
+type LogDependencies<D extends Dependencies = Dependencies> = {
   logger: logging.Logger;
-  config: configNS.HttpConfig;
-  route: RouteDefinition;
+  config: configNS.HttpConfig<D>;
+  route: RouteDefinition<D>;
   context: RequestContext;
 };
 
-const logRequest = (deps: LogDependencies) => (request: Request): void => {
+/**
+ * Logs a request
+ * @param deps - The dependencies
+ * @param request - The request
+ */
+const logRequest = <D extends Dependencies = Dependencies>(deps: LogDependencies<D>) => (request: Request): void => {
   const { logger, config, route, context } = deps;
   const { method, path } = route;
   const logLevel = config.logging.logRequests[method];
@@ -37,14 +50,21 @@ const logRequest = (deps: LogDependencies) => (request: Request): void => {
   }
 };
 
-
-type HandleRequestDependencies = {
-  dependencies: Dependencies;
+/**
+ * Dependencies for handling a request
+ */
+type HandleRequestDependencies<D extends Dependencies = Dependencies> = {
+  dependencies: D;
   context: RequestContext;
 };
 
-const handleRequest = (deps: HandleRequestDependencies) =>
-  (handler: RouteHandler) =>
+/**
+ * Handles a request
+ * @param deps - The dependencies
+ * @returns - The handler response
+ */
+const handleRequest = <D extends Dependencies = Dependencies>(deps: HandleRequestDependencies<D>) =>
+  (handler: RouteHandler<D>) =>
     async (handlerInput: Request): Promise<HandlerResponse> => {
       const { dependencies, context } = deps;
       let response: HandlerResponse;
@@ -59,12 +79,15 @@ const handleRequest = (deps: HandleRequestDependencies) =>
       return response;
     };
 
-type ProcessDependencies = {
+/**
+ * Dependencies for processing a request
+ */
+type ProcessDependencies<D extends Dependencies = Dependencies> = {
   context: RequestContext;
   logger: logging.Logger;
-  config: configNS.HttpConfig;
-  dependencies: Dependencies;
-  route: RouteDefinition;
+  config: configNS.HttpConfig<D>;
+  dependencies: D;
+  route: RouteDefinition<D>;
   opts?: optsNS.ExpressProviderOpts;
 };
 
@@ -73,8 +96,8 @@ type ProcessDependencies = {
  * @param deps - The dependencies
  * @returns - The processed request
  */
-export const processRequest = (deps: ProcessDependencies) =>
-  (handler: RouteHandler) =>
+export const processRequest = <D extends Dependencies = Dependencies>(deps: ProcessDependencies<D>) =>
+  (handler: RouteHandler<D>) =>
     async (req: express.Request): Promise<HandlerResponse> => {
       const request = getRequest(req);
       logRequest(deps)(request);

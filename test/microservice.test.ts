@@ -4,9 +4,35 @@ import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
 import sinon from 'sinon';
-import { http, logger, messaging, microservice as microserviceNS } from '../src';
+import { di, http, logger, messaging, microservice as microserviceNS } from '../src';
 import { Kafka, Consumer, Producer } from 'kafkajs';
 import { asFunction, createContainer } from 'awilix';
+
+type User = {
+  id: string;
+  name: string;
+}
+
+type Database = {
+  findUser: (id: string) => Promise<User | undefined>;
+}
+
+const createDatabaseProvider = (): di.Provider<{}, Database> => () => ({
+  findUser: async (id: string) => {
+    return {
+      id,
+      name: 'John Doe',
+    };
+  },
+});
+
+type ExtendedDependencies = {
+  database: Database;
+}
+
+type ExtendedMicroserviceDependencies = microserviceNS.Dependencies & ExtendedDependencies;
+
+type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
@@ -31,7 +57,7 @@ describe('Microservice', () => {
   });
 
   before('create a microservice', async () => {
-    const routes: http.providers.express.ExpressRouteDefinition[] = [
+    const routes: http.providers.express.ExpressRouteDefinition<ExtendedHttpDependencies>[] = [
       {
         path: '/200',
         method: http.HttpMethod.GET,
@@ -51,11 +77,12 @@ describe('Microservice', () => {
             ...request,
             parsed: true,
           }),
-          (_dependencies) => async (_context, request) => ({
+          (dependencies) => async (_context, request) => ({
             statusCode: 200,
             data: { 
               parsed: request.parsed, 
               message: 'Hello, world!', 
+              user: await dependencies.database.findUser('123'),
             },
           }),
         ),
@@ -201,7 +228,7 @@ describe('Microservice', () => {
         },
       },
     ];
-    const httpConfig: http.config.HttpConfig = {
+    const httpConfig: http.config.HttpConfig<ExtendedHttpDependencies> = {
       host: 'localhost',
       port: 3000,
       logging: {
@@ -264,14 +291,16 @@ describe('Microservice', () => {
     const kafkaProducersProvider = messaging.producer.providers.kafka.createMultiProvider({
       kafkaProducer: kafkaProducerProvider,
     });
+    const databaseProvider = createDatabaseProvider();
     const microserviceProvider = microserviceNS.createProvider();
-    const container = createContainer<microserviceNS.Dependencies & { microservice: microserviceNS.Microservice }>();
+    const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microserviceNS.Microservice }>();
     container.register({
       logger: asFunction(loggerProvider).singleton(),
       httpServer: asFunction(httpProvider).singleton(),
       eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
       eventProducers: asFunction(kafkaProducersProvider).singleton(),
       microservice: asFunction(microserviceProvider).singleton(),
+      database: asFunction(databaseProvider).singleton(),
     });
     microservice = container.resolve<microserviceNS.Microservice>('microservice');
     await microservice.start();
@@ -294,7 +323,7 @@ describe('Microservice', () => {
     const response = await supertest('localhost:3000').get('/200');
 
     assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { parsed: true, message: 'Hello, world!' });
+    assert.deepEqual(response.body, { parsed: true, message: 'Hello, world!', user: { id: '123', name: 'John Doe' } });
   });
 
   it('get responds with 400', async () => {

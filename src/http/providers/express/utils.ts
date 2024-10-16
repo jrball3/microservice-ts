@@ -4,6 +4,7 @@ import * as providers from '..';
 import { RequestContext } from '../../request-context';
 import { RouteDefinition } from '../../route-definition';
 import * as utils from '../../utils';
+import { Dependencies } from '../../dependencies';
 
 /**
  * Creates a request context
@@ -11,8 +12,8 @@ import * as utils from '../../utils';
  * @param opts - The options
  * @returns A function that creates a request context
  */
-export const createRequestContext = (
-  route: RouteDefinition,
+export const createRequestContext = <D extends Dependencies = Dependencies>(
+  route: RouteDefinition<D>,
   opts?: providers.express.opts.ExpressProviderOpts,
 ) =>
   (req: express.Request): RequestContext => {

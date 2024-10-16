@@ -38,19 +38,19 @@ export type Request = {
 /**
  * A route handler
  */
-export type RouteHandler = (dependencies: Dependencies) =>
+export type RouteHandler<D extends Dependencies = Dependencies> = (dependencies: D) =>
 (context: RequestContext, request: Request) => Promise<HandlerResponse>;
 
 /**
  * A request parser
  */
-export type RequestParser<ParsedRequest> = (dependencies: Dependencies) =>
+export type RequestParser<ParsedRequest, D extends Dependencies = Dependencies> = (dependencies: D) =>
 (context: RequestContext, request: Request) => ParsedRequest | Promise<ParsedRequest>;
 
 /**
  * A parsed request handler
  */
-export type ParsedRequestHandler<ParsedRequest> = (dependencies: Dependencies) =>
+export type ParsedRequestHandler<ParsedRequest, D extends Dependencies = Dependencies> = (dependencies: D) =>
 (context: RequestContext, request: ParsedRequest) => Promise<HandlerResponse>;
 
 /**
@@ -59,11 +59,11 @@ export type ParsedRequestHandler<ParsedRequest> = (dependencies: Dependencies) =
  * @param handleParsedRequest - A function that handles the parsed request
  * @returns A route handler
  */
-export const create = <ParsedRequest>(
-  parseRequest: RequestParser<ParsedRequest>,
-  handleParsedRequest: ParsedRequestHandler<ParsedRequest>,
-): RouteHandler =>
-    (dependencies: Dependencies) =>
+export const create = <ParsedRequest, D extends Dependencies = Dependencies>(
+  parseRequest: RequestParser<ParsedRequest, D>,
+  handleParsedRequest: ParsedRequestHandler<ParsedRequest, D>,
+): RouteHandler<D> =>
+    (dependencies: D) =>
       async (context: RequestContext, request: Request) => {
         const parsedRequest = await parseRequest(dependencies)(context, request);
         return handleParsedRequest(dependencies)(context, parsedRequest);

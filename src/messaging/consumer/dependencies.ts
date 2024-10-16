@@ -3,6 +3,6 @@ import { Logger } from '../../logging/logging';
 /**
  * The event consumer dependencies
  */
-export type EventConsumerDependencies = {
+export type Dependencies = {
   logger: Logger;
 };

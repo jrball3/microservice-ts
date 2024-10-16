@@ -12,12 +12,12 @@ import * as routes from './routes';
  * @param buildServerFn - The function that builds a server
  * @returns An HTTP provider
  */
-export const createProvider = (
+export const createProvider = <D extends Dependencies = Dependencies>(
   app: express.Application,
-  config: configNS.HttpConfig,
+  config: configNS.HttpConfig<D>,
   opts?: ExpressProviderOpts,
-): Provider<Dependencies, HttpServer> =>
-  (dependencies: Dependencies): HttpServer => {
+): Provider<D, HttpServer> =>
+  (dependencies: D): HttpServer => {
     routes.apply(dependencies)(config)(app, opts);
     let server: nodehttp.Server | undefined;
 
