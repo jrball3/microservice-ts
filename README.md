@@ -21,7 +21,7 @@ Microservice-TS is a declarative, functional library enabling agile creation of 
 ```typescript
 import express from 'express';
 import { createContainer, asFunction } from 'awilix';
-import { events, http, logger, microservice } from '..';
+import { http, logger, microservice, messaging } from '..';
 
 
 const createApp = (): express.Application => {
@@ -131,7 +131,7 @@ const createLoggingConfig = (): logger.config.LoggingConfig => {
   return loggingConfig;
 }
 
-const createEventConsumers = (): Record<string, events.consumer.config.EventConsumerConfig> => ({
+const createEventConsumers = (): Record<string, messaging.consumer.config.EventConsumerConfig> => ({
   kafkaConsumer: {
     clientId: 'kafka-consumer',
     brokers: ['localhost:9092'],
@@ -140,14 +140,15 @@ const createEventConsumers = (): Record<string, events.consumer.config.EventCons
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: async (message) => {
-        console.log(message);
-      },
+      eachMessage: (_dependencies: messaging.consumer.EventConsumerDependencies) => 
+        async (message) => {
+          console.log(message);
+        },
     },
   },
 });
 
-const createEventProducers = (): Record<string, events.producer.config.EventProducerConfig> => ({
+const createEventProducers = (): Record<string, messaging.producer.config.EventProducerConfig> => ({
   kafkaProducer: {
     config: {
       clientId: 'kafka-producer',
@@ -162,8 +163,8 @@ const createEventProducers = (): Record<string, events.producer.config.EventProd
 const createMicroserviceConfig = (
   http: http.config.HttpConfig,
   logging: logger.config.LoggingConfig,
-  eventConsumers: Record<string, events.consumer.config.EventConsumerConfig>,
-  eventProducers: Record<string, events.producer.config.EventProducerConfig>,
+  eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig>,
+  eventProducers: Record<string, messaging.producer.config.EventProducerConfig>,
 ): microservice.MicroserviceConfig => {
   // Construct the microservice configuration
   const config: microservice.MicroserviceConfig = {
@@ -201,8 +202,8 @@ export const resolveMicroservice = (
   if (!kafkaConsumerConfig) {
     throw new Error('Kafka consumer config is not defined');
   }
-  const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConsumerConfig);
-  const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
+  const kafkaConsumerProvider = messaging.consumer.providers.kafka.createProvider(kafkaConsumerConfig);
+  const kafkaConsumersProvider = messaging.consumer.providers.kafka.createMultiProvider({
     kafkaConsumer: kafkaConsumerProvider,
   });
 
@@ -211,8 +212,8 @@ export const resolveMicroservice = (
   if (!kafkaProducerConfig) {
     throw new Error('Kafka producer config is not defined');
   }
-  const kafkaProducerProvider = events.producer.providers.kafka.createProvider(kafkaProducerConfig);
-  const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
+  const kafkaProducerProvider = messaging.producer.providers.kafka.createProvider(kafkaProducerConfig);
+  const kafkaProducersProvider = messaging.producer.providers.kafka.createMultiProvider({
     kafkaProducer: kafkaProducerProvider,
   });
 

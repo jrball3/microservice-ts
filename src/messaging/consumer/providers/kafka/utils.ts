@@ -1,59 +1,25 @@
-import { Consumer, ConsumerConfig, ConsumerRunConfig, ConsumerSubscribeTopics, Kafka, KafkaConfig } from 'kafkajs';
-import * as logging from '../../../logging';
-import { EventConsumer } from '../consumer';
-import { EventConsumerDependencies } from '../dependencies';
-import { Provider } from '../../../di';
+import { Consumer } from 'kafkajs';
+import { EventConsumerDependencies } from '../../dependencies';
+import { KafkaConsumer, KafkaConsumerConfig } from './kafka';
+import * as logging from '../../../../logging';
 
 /**
- * The Kafka consumer configuration
- */
-export type KafkaConsumerConfig = {
-  clientId: string;
-  brokers: string[];
-  groupId: string;
-  subscribeTopics: ConsumerSubscribeTopics,
-  runConfig: ConsumerRunConfig;
-};
-
-/**
- * The Kafka consumer
- */
-export interface KafkaConsumer extends EventConsumer {
-  consumer: Consumer;
-}
-
-/**
- * Creates a Kafka consumer provider
+ * Creates a Kafka consumer from a consumer
+ * @param dependencies - The event consumer dependencies
  * @param config - The Kafka consumer configuration
- * @returns A Kafka consumer provider
+ * @param consumer - The Kafka consumer
+ * @returns A Kafka consumer
  */
-export const createProvider = (
-  config: KafkaConsumerConfig,
-): Provider<EventConsumerDependencies, KafkaConsumer> =>
-  (dependencies: EventConsumerDependencies): KafkaConsumer => {
+export const fromConsumer = (dependencies: EventConsumerDependencies) =>
+  (config: KafkaConsumerConfig, consumer: Consumer): KafkaConsumer => {
     const { logger } = dependencies;
-
-    const kafkaConfig: KafkaConfig = {
-      clientId: config.clientId,
-      brokers: config.brokers,
-    };
-
-    const consumerConfig: ConsumerConfig = {
-      groupId: config.groupId,
-    };
-
-    const kafka = new Kafka(kafkaConfig);
-
-    // TODO: Wrap the consumer runConfig such that the dependencies are provided
-    // to the eachMessage and eachBatch functions
-    const consumer = kafka.consumer(consumerConfig);
-
+    const logEvent = logging.events.logEvent(logger);
     return {
       consumer,
       connect: async (): Promise<boolean> => {
         try {
           await consumer.connect();
-          logging.events.logEvent(logger)(logging.LogLevel.INFO, {
+          logEvent(logging.LogLevel.INFO, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer connected',
             eventTimestamp: new Date(),
@@ -65,7 +31,7 @@ export const createProvider = (
           });
           return true;
         } catch (error) {
-          logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
+          logEvent(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer connection failed',
             eventTimestamp: new Date(),
@@ -79,7 +45,7 @@ export const createProvider = (
       disconnect: async (): Promise<boolean> => {
         try {
           await consumer.disconnect();
-          logging.events.logEvent(logger)(logging.LogLevel.INFO, {
+          logEvent(logging.LogLevel.INFO, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer disconnected',
             eventTimestamp: new Date(),
@@ -91,7 +57,7 @@ export const createProvider = (
           });
           return true;
         } catch (error) {
-          logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
+          logEvent(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer disconnection failed',
             eventTimestamp: new Date(),
@@ -103,10 +69,14 @@ export const createProvider = (
       start: async (): Promise<boolean> => {
         try {
           await consumer.subscribe(config.subscribeTopics);
-          await consumer.run(config.runConfig);
-          logging.events.logEvent(logger)(logging.LogLevel.INFO, {
+          await consumer.run({
+            ...config.runConfig,
+            eachBatch: config.runConfig.eachBatch?.(dependencies),
+            eachMessage: config.runConfig.eachMessage?.(dependencies),
+          });
+          logEvent(logging.LogLevel.INFO, {
             eventType: 'kafka consumer',
-            eventName: 'kafka consumer subscribed',
+            eventName: 'kafka consumer started',
             eventTimestamp: new Date(),
             eventData: {
               clientId: config.clientId,
@@ -117,9 +87,9 @@ export const createProvider = (
           });
           return true;
         } catch (error) {
-          logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
+          logEvent(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
-            eventName: 'kafka consumer subscription failed',
+            eventName: 'kafka consumer start failed',
             eventTimestamp: new Date(),
             eventData: { error },
           });
@@ -131,7 +101,7 @@ export const createProvider = (
           await consumer.stop();
           return true;
         } catch (error) {
-          logging.events.logEvent(logger)(logging.LogLevel.ERROR, {
+          logEvent(logging.LogLevel.ERROR, {
             eventType: 'kafka consumer',
             eventName: 'kafka consumer stop failed',
             eventTimestamp: new Date(),
@@ -141,17 +111,4 @@ export const createProvider = (
         }
       },
     };
-  };
-
-/**
- * Creates a multi-consumer provider
- */
-export const createMultiProvider = (
-  providers: Record<string, Provider<EventConsumerDependencies, KafkaConsumer>>,
-): Provider<EventConsumerDependencies, Record<string, KafkaConsumer>> =>
-  (dependencies: EventConsumerDependencies): Record<string, KafkaConsumer> => {
-    return Object.entries(providers).reduce((acc, [key, provider]) => {
-      acc[key] = provider(dependencies);
-      return acc;
-    }, {} as Record<string, KafkaConsumer>);
   };

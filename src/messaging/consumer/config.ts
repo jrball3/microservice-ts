@@ -1,4 +1,4 @@
-import * as kafka from './providers/kafka';
+import * as kafka from './providers/kafka/kafka';
 
 /**
  * The event consumer configuration

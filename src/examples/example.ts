@@ -1,6 +1,6 @@
 import express from 'express';
 import { createContainer, asFunction } from 'awilix';
-import { events, http, logger, microservice } from '..';
+import { http, logger, microservice, messaging } from '..';
 
 
 const createApp = (): express.Application => {
@@ -22,7 +22,7 @@ const createApp = (): express.Application => {
   app.use(appMiddleware);
 
   return app;
-}
+};
 
 
 const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
@@ -77,7 +77,7 @@ const createRoutes = (): http.providers.express.ExpressRouteDefinition[] => {
   };
 
   return [getRoute];
-}
+};
 
 const createHttpConfig = (routes: http.providers.express.ExpressRouteDefinition[]): http.config.HttpConfig => {
   // Construct the HTTP server configuration
@@ -99,7 +99,7 @@ const createHttpConfig = (routes: http.providers.express.ExpressRouteDefinition[
   };
 
   return httpConfig;
-}
+};
 
 const createLoggingConfig = (): logger.config.LoggingConfig => {
   // Define the logging configuration, required for an http microservice
@@ -108,9 +108,9 @@ const createLoggingConfig = (): logger.config.LoggingConfig => {
   };
 
   return loggingConfig;
-}
+};
 
-const createEventConsumers = (): Record<string, events.consumer.config.EventConsumerConfig> => ({
+const createEventConsumers = (): Record<string, messaging.consumer.config.EventConsumerConfig> => ({
   kafkaConsumer: {
     clientId: 'kafka-consumer',
     brokers: ['localhost:9092'],
@@ -119,14 +119,15 @@ const createEventConsumers = (): Record<string, events.consumer.config.EventCons
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: async (message) => {
-        console.log(message);
-      },
+      eachMessage: (_dependencies: messaging.consumer.EventConsumerDependencies) => 
+        async (message) => {
+          console.log(message);
+        },
     },
   },
 });
 
-const createEventProducers = (): Record<string, events.producer.config.EventProducerConfig> => ({
+const createEventProducers = (): Record<string, messaging.producer.config.EventProducerConfig> => ({
   kafkaProducer: {
     config: {
       clientId: 'kafka-producer',
@@ -139,15 +140,15 @@ const createEventProducers = (): Record<string, events.producer.config.EventProd
 });
 
 const createMicroserviceConfig = (
-  http: http.config.HttpConfig,
-  logging: logger.config.LoggingConfig,
-  eventConsumers: Record<string, events.consumer.config.EventConsumerConfig>,
-  eventProducers: Record<string, events.producer.config.EventProducerConfig>,
+  httpConfig: http.config.HttpConfig,
+  loggingConfig: logger.config.LoggingConfig,
+  eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig>,
+  eventProducers: Record<string, messaging.producer.config.EventProducerConfig>,
 ): microservice.MicroserviceConfig => {
   // Construct the microservice configuration
   const config: microservice.MicroserviceConfig = {
-    http,
-    logging,
+    http: httpConfig,
+    logging: loggingConfig,
     eventConsumers,
     eventProducers,
   };
@@ -157,7 +158,7 @@ const createMicroserviceConfig = (
 
 export const resolveMicroservice = (
   app: express.Application,
-  config: microservice.MicroserviceConfig
+  config: microservice.MicroserviceConfig,
 ): microservice.Microservice => {
   // Construct a function that extracts request context from the request
   const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
@@ -180,8 +181,8 @@ export const resolveMicroservice = (
   if (!kafkaConsumerConfig) {
     throw new Error('Kafka consumer config is not defined');
   }
-  const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConsumerConfig);
-  const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
+  const kafkaConsumerProvider = messaging.consumer.providers.kafka.createProvider(kafkaConsumerConfig);
+  const kafkaConsumersProvider = messaging.consumer.providers.kafka.createMultiProvider({
     kafkaConsumer: kafkaConsumerProvider,
   });
 
@@ -190,8 +191,8 @@ export const resolveMicroservice = (
   if (!kafkaProducerConfig) {
     throw new Error('Kafka producer config is not defined');
   }
-  const kafkaProducerProvider = events.producer.providers.kafka.createProvider(kafkaProducerConfig);
-  const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
+  const kafkaProducerProvider = messaging.producer.providers.kafka.createProvider(kafkaProducerConfig);
+  const kafkaProducersProvider = messaging.producer.providers.kafka.createMultiProvider({
     kafkaProducer: kafkaProducerProvider,
   });
 

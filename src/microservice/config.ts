@@ -1,6 +1,6 @@
 import * as http from '../http';
 import * as logging from '../logging';
-import * as events from '../events';
+import * as messaging from '../messaging';
 
 /**
  * A microservice configuration
@@ -8,6 +8,6 @@ import * as events from '../events';
 export type MicroserviceConfig = {
   http: http.config.HttpConfig;
   logging: logging.config.LoggingConfig;
-  eventConsumers: Record<string, events.consumer.config.EventConsumerConfig>
-  eventProducers: Record<string, events.producer.config.EventProducerConfig>
+  eventConsumers: Record<string, messaging.consumer.config.EventConsumerConfig>
+  eventProducers: Record<string, messaging.producer.config.EventProducerConfig>
 };

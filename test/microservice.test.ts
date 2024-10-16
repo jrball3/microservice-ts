@@ -4,7 +4,7 @@ import { assert } from 'chai';
 import express from 'express';
 import supertest from 'supertest';
 import sinon from 'sinon';
-import { events, http, logger, microservice as microserviceNS } from '../src';
+import { http, logger, messaging, microservice as microserviceNS } from '../src';
 import { Kafka, Consumer, Producer } from 'kafkajs';
 import { asFunction, createContainer } from 'awilix';
 
@@ -239,7 +239,7 @@ describe('Microservice', () => {
     const opts = { extractRequestContext };
     const httpProvider = http.providers.express.server.createProvider(app, config.http, opts);
 
-    const kafkaConfig: events.consumer.providers.kafka.KafkaConsumerConfig = {
+    const kafkaConfig: messaging.consumer.providers.kafka.KafkaConsumerConfig = {
       clientId: 'my-app',
       brokers: ['localhost:9092'],
       groupId: 'my-group',
@@ -248,20 +248,20 @@ describe('Microservice', () => {
         eachMessage: sinon.stub().resolves(true),
       },
     };
-    const kafkaConsumerProvider = events.consumer.providers.kafka.createProvider(kafkaConfig);
-    const kafkaConsumersProvider = events.consumer.providers.kafka.createMultiProvider({
+    const kafkaConsumerProvider = messaging.consumer.providers.kafka.createProvider(kafkaConfig);
+    const kafkaConsumersProvider = messaging.consumer.providers.kafka.createMultiProvider({
       kafkaConsumer: kafkaConsumerProvider,
     });
 
-    const kafkaProducerConfig: events.producer.config.EventProducerConfig = {
+    const kafkaProducerConfig: messaging.producer.config.EventProducerConfig = {
       config: {
         clientId: 'my-app',
         brokers: ['localhost:9092'],
       },
       producerConfig: {},
     };
-    const kafkaProducerProvider = events.producer.providers.kafka.createProvider(kafkaProducerConfig);
-    const kafkaProducersProvider = events.producer.providers.kafka.createMultiProvider({
+    const kafkaProducerProvider = messaging.producer.providers.kafka.createProvider(kafkaProducerConfig);
+    const kafkaProducersProvider = messaging.producer.providers.kafka.createMultiProvider({
       kafkaProducer: kafkaProducerProvider,
     });
     const microserviceProvider = microserviceNS.createProvider();
