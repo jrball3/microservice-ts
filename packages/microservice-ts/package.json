@@ -1,0 +1,29 @@
+{
+  "name": "@jrball3/microservice-ts",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.21.0",
+    "kafkajs": "^2.2.4",
+    "tslib": "^2.3.0",
+    "uuid": "^8.3.2"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "microservice-ts"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/sinon": "^17.0.3",
+    "@types/supertest": "^6.0.2",
+    "@types/uuid": "^8.3.2",
+    "awilix": "^12.0.2",
+    "sinon": "^19.0.2",
+    "supertest": "^7.0.0"
+  }
+}

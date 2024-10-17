@@ -1,12 +1,9 @@
-/* eslint-disable import/no-named-as-default-member */
-
-import { assert } from 'chai';
-import express from 'express';
-import supertest from 'supertest';
-import sinon from 'sinon';
-import { di, http, logger, messaging, microservice as microserviceNS, observability } from '../src';
-import { Kafka, Consumer, Producer } from 'kafkajs';
 import { asFunction, createContainer } from 'awilix';
+import express from 'express';
+import { Consumer, Kafka, Producer } from 'kafkajs';
+import sinon from 'sinon';
+import supertest from 'supertest';
+import { di, http, logger, messaging, microservice as microserviceNS, observability } from '../src';
 
 type User = {
   id: string;
@@ -44,25 +41,25 @@ describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
 
   const mockConsumer = {
-    connect: sinon.stub().resolves(),
-    disconnect: sinon.stub().resolves(),
-    subscribe: sinon.stub().resolves(),
-    run: sinon.stub().resolves(),
-    stop: sinon.stub().resolves(),
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    subscribe: jest.fn().mockResolvedValue(undefined),
+    run: jest.fn().mockResolvedValue(undefined),
+    stop: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockProducer = {
-    connect: sinon.stub().resolves(),
-    disconnect: sinon.stub().resolves(),
-    send: sinon.stub().resolves(),
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    send: jest.fn().mockResolvedValue(undefined),
   };
 
-  before('stub kafka', () => {
-    sinon.stub(Kafka.prototype, 'consumer').returns(mockConsumer as unknown as Consumer);
-    sinon.stub(Kafka.prototype, 'producer').returns(mockProducer as unknown as Producer);
+  beforeAll(() => {
+    jest.spyOn(Kafka.prototype, 'consumer').mockReturnValue(mockConsumer as unknown as Consumer);
+    jest.spyOn(Kafka.prototype, 'producer').mockReturnValue(mockProducer as unknown as Producer);
   });
 
-  before('create a microservice', async () => {
+  beforeAll(async () => {
     const routes: http.providers.express.ExpressRouteDefinition<ExtendedHttpDependencies>[] = [
       {
         path: '/200',
@@ -85,9 +82,9 @@ describe('Microservice', () => {
           }),
           (dependencies) => async (_context, request) => ({
             statusCode: 200,
-            data: { 
-              parsed: request.parsed, 
-              message: 'Hello, world!', 
+            data: {
+              parsed: request.parsed,
+              message: 'Hello, world!',
               user: await dependencies.database.findUser('123'),
             },
           }),
@@ -325,110 +322,107 @@ describe('Microservice', () => {
     await microservice.start();
   });
 
-  after('stops the server', async () => {
+  afterAll(async () => {
     await microservice.stop();
-    assert.isTrue(mockConsumer.stop.calledOnce);
-    assert.isTrue(mockConsumer.disconnect.calledOnce);
-    assert.isTrue(mockProducer.disconnect.calledOnce);
-    sinon.restore();
+    expect(mockConsumer.stop).toHaveBeenCalledTimes(1);
+    expect(mockConsumer.disconnect).toHaveBeenCalledTimes(1);
+    expect(mockProducer.disconnect).toHaveBeenCalledTimes(1);
+    jest.restoreAllMocks();
   });
 
   it('connects and subscribes to Kafka topic', async () => {
-    assert.isTrue(mockConsumer.connect.calledOnce);
-    assert.isTrue(mockConsumer.subscribe.calledOnce);
+    expect(mockConsumer.connect).toHaveBeenCalledTimes(1);
+    expect(mockConsumer.subscribe).toHaveBeenCalledTimes(1);
   });
 
   it('get responds with Hello, world!', async () => {
     const response = await supertest('localhost:3000').get('/200');
 
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { parsed: true, message: 'Hello, world!', user: { id: '123', name: 'John Doe' } });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ parsed: true, message: 'Hello, world!', user: { id: '123', name: 'John Doe' } });
   });
 
   it('get responds with 400', async () => {
     const response = await supertest('localhost:3000').get('/400');
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, { message: 'Bad request' });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'Bad request' });
   });
 
   it('get responds with 500', async () => {
     const response = await supertest('localhost:3000').get('/500');
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.body, { message: 'Internal server error' });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: 'Internal server error' });
   });
 
   it('post responds with Hello, world!', async () => {
     const response = await supertest('localhost:3000').post('/200');
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { message: 'Hello, world!' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: 'Hello, world!' });
   });
 
   it('post responds with 400', async () => {
     const response = await supertest('localhost:3000').post('/400');
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, { message: 'Bad request' });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'Bad request' });
   });
 
   it('post responds with 500', async () => {
     const response = await supertest('localhost:3000').post('/500');
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.body, { message: 'Internal server error' });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: 'Internal server error' });
   });
 
   it('put responds with Hello, world!', async () => {
     const response = await supertest('localhost:3000').put('/200');
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { message: 'Hello, world!' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: 'Hello, world!' });
   });
 
   it('put responds with 400', async () => {
     const response = await supertest('localhost:3000').put('/400');
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, { message: 'Bad request' });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'Bad request' });
   });
 
   it('put responds with 500', async () => {
     const response = await supertest('localhost:3000').put('/500');
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.body, { message: 'Internal server error' });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: 'Internal server error' });
   });
 
   it('patch responds with Hello, world!', async () => {
     const response = await supertest('localhost:3000').patch('/200');
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { message: 'Hello, world!' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: 'Hello, world!' });
   });
 
   it('patch responds with 400', async () => {
     const response = await supertest('localhost:3000').patch('/400');
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, { message: 'Bad request' });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'Bad request' });
   });
 
   it('patch responds with 500', async () => {
     const response = await supertest('localhost:3000').patch('/500');
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.body, { message: 'Internal server error' });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: 'Internal server error' });
   });
 
   it('delete responds with Hello, world!', async () => {
     const response = await supertest('localhost:3000').delete('/200');
-    assert.equal(response.status, 200);
-    assert.deepEqual(response.body, { message: 'Hello, world!' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: 'Hello, world!' });
   });
 
   it('delete responds with 400', async () => {
     const response = await supertest('localhost:3000').delete('/400');
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, { message: 'Bad request' });
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ message: 'Bad request' });
   });
 
   it('delete responds with 500', async () => {
     const response = await supertest('localhost:3000').delete('/500');
-    assert.equal(response.status, 500);
-    assert.deepEqual(response.body, { message: 'Internal server error' });
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ message: 'Internal server error' });
   });
-
 });
-
-/* eslint-enable import/no-named-as-default-member */
