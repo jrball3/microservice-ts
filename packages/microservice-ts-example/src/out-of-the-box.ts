@@ -1,26 +1,3 @@
-# Microservice-TS
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-
-Microservice-TS is a declarative, functional library enabling agile creation of microservices with dependency injection.
-
-## Features
-
-- **Declarative Configuration**: Define your microservice structure and behavior using a simple, declarative configuration.
-- **HTTP Support**: Built-in support for HTTP servers with Express integration.
-- **Event Consumers**: Built-in support for Kafka event consumers.
-- **Event Producers**: Built-in support for Kafka event producers.
-- **Observability**: Built-in support for observability for integration with observability tools like OpenTelemetry.
-- **Dependency Injection**: Composed to integrate well with dependency injection solutions like Awilix. 
-- **Extensible Dependencies**: Inject additional dependencies into your microservice.
-- **Logging**: Flexible logging system with configurable log levels.
-- **Request/Response Handling**: Streamlined request processing and response generation.
-- **Error Handling**: Built-in error handling and conversion to standardized error responses.
-- **TypeScript Support**: Fully typed for improved developer experience and code quality.
-
-## Example
-
-```typescript
 import { asFunction, createContainer } from 'awilix';
 import express from 'express';
 import { http, logging, messaging, microservice, observability } from '@jrball3/microservice-ts';
@@ -271,4 +248,3 @@ const main = async (): Promise<void> => {
 };
 
 main();
-```

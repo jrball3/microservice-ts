@@ -1,4 +1,3 @@
-export * from './logging';
-export * as providers from './providers';
 export * from './dependencies';
+export * from './logging';
 export * as config from './config';

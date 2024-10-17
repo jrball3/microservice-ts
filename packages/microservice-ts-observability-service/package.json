@@ -1,0 +1,18 @@
+{
+  "name": "@jrball3/microservice-ts-observability-service",
+  "version": "0.0.1",
+  "dependencies": {
+    "@jrball3/microservice-ts": "^0.0.1",
+    "tslib": "^2.3.0"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "microservice-ts-observability-service"
+  }
+}

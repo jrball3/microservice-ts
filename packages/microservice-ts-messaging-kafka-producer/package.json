@@ -1,0 +1,22 @@
+{
+  "name": "@jrball3/microservice-ts-messaging-kafka-producer",
+  "version": "0.0.1",
+  "dependencies": {
+    "@jrball3/microservice-ts": "^0.0.1",
+    "kafkajs": "^2.2.4",
+    "tslib": "^2.3.0"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!**/*.tsbuildinfo"
+  ],
+  "nx": {
+    "name": "microservice-ts-messaging-kafka-producer"
+  },
+  "devDependencies": {
+    "@types/kafkajs": "^1.8.2"
+  }
+}

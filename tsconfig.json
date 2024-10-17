@@ -8,6 +8,30 @@
     },
     {
       "path": "./packages/microservice-ts"
+    },
+    {
+      "path": "./packages/microservice-ts-logging-console"
+    },
+    {
+      "path": "./packages/microservice-ts-http-express"
+    },
+    {
+      "path": "./packages/microservice-ts-http-express"
+    },
+    {
+      "path": "./packages/microservice-ts-http-express"
+    },
+    {
+      "path": "./packages/microservice-ts-messaging-kafka-consumer"
+    },
+    {
+      "path": "./packages/microservice-ts-messaging-kafka-producer"
+    },
+    {
+      "path": "./packages/microservice-ts-observability-service"
+    },
+    {
+      "path": "./packages/microservice-ts-example"
     }
   ]
 }

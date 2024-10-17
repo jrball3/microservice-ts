@@ -1,0 +1,19 @@
+{
+  "name": "@microservice-ts/microservice-ts-example",
+  "version": "0.0.1",
+  "dependencies": {
+    "@jrball3/microservice-ts-http-express": "^0.0.1",
+    "@jrball3/microservice-ts-logging-console": "^0.0.1",
+    "@jrball3/microservice-ts-messaging-kafka-consumer": "^0.0.1",
+    "@jrball3/microservice-ts-messaging-kafka-producer": "^0.0.1",
+    "@jrball3/microservice-ts-observability-service": "^0.0.1",
+    "tslib": "^2.3.0"
+  },
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "typings": "./dist/index.d.ts",
+  "private": true,
+  "nx": {
+    "name": "microservice-ts-example"
+  }
+}

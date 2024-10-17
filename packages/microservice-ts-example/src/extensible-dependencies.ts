@@ -1,34 +1,68 @@
-# Microservice-TS
-
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-
-Microservice-TS is a declarative, functional library enabling agile creation of microservices with dependency injection.
-
-## Features
-
-- **Declarative Configuration**: Define your microservice structure and behavior using a simple, declarative configuration.
-- **HTTP Support**: Built-in support for HTTP servers with Express integration.
-- **Event Consumers**: Built-in support for Kafka event consumers.
-- **Event Producers**: Built-in support for Kafka event producers.
-- **Observability**: Built-in support for observability for integration with observability tools like OpenTelemetry.
-- **Dependency Injection**: Composed to integrate well with dependency injection solutions like Awilix. 
-- **Extensible Dependencies**: Inject additional dependencies into your microservice.
-- **Logging**: Flexible logging system with configurable log levels.
-- **Request/Response Handling**: Streamlined request processing and response generation.
-- **Error Handling**: Built-in error handling and conversion to standardized error responses.
-- **TypeScript Support**: Fully typed for improved developer experience and code quality.
-
-## Example
-
-```typescript
-import { asFunction, createContainer } from 'awilix';
 import express from 'express';
-import { http, logging, messaging, microservice, observability } from '@jrball3/microservice-ts';
+import { createContainer, asFunction } from 'awilix';
+import { di, http, logging, microservice, messaging, observability } from '@jrball3/microservice-ts';
 import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
+
+type User = {
+  id: string;
+  name: string;
+};
+
+type Database = {
+  initialize: () => Promise<boolean>;
+  shutdown: () => Promise<boolean>;
+  findUser: (id: string) => Promise<User | undefined>;
+};
+
+type DatabaseConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
+
+const createDatabaseProvider = (_config: DatabaseConfig): di.Provider<unknown, Database> => () => ({
+  initialize: (): Promise<boolean> => {
+    return Promise.resolve(true);
+  },
+  shutdown: (): Promise<boolean> => {
+    return Promise.resolve(true);
+  },
+  findUser: async (id: string): Promise<User | undefined> => {
+    return { id, name: 'John Doe' };
+  },
+});
+
+type ExtendedDependencies = {
+  database: Database;
+};
+
+type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
+
+type ExtendedMicroserviceDependencies = microservice.Dependencies & ExtendedDependencies;
+
+type ExtendedEventConsumerDependencies = messaging.consumer.Dependencies & ExtendedDependencies;
+
+type ExtendedMicroserviceConfig = microservice.MicroserviceConfig<
+  mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>,
+  mstsProducer.KafkaProducerConfig,
+  ExtendedHttpDependencies
+> & {
+  database: DatabaseConfig;
+};
+
+const createDatabaseConfig = (): DatabaseConfig => ({
+  host: 'localhost',
+  port: 5432,
+  user: 'postgres',
+  password: 'postgres',
+  database: 'postgres',
+});
 
 const createApp = (): express.Application => {
   // Construct the express app
@@ -51,8 +85,7 @@ const createApp = (): express.Application => {
   return app;
 };
 
-
-const createRoutes = (): mstsExpress.ExpressRouteDefinition[] => {
+const createRoutes = (): mstsExpress.ExpressRouteDefinition<ExtendedHttpDependencies>[] => {
   // Construct some native express middleware for one route
   const getMiddleware = (
     req: express.Request,
@@ -72,7 +105,7 @@ const createRoutes = (): mstsExpress.ExpressRouteDefinition[] => {
     };
   };
 
-  const parseRequest = (_dependencies: http.Dependencies) =>
+  const parseRequest = (_dependencies: ExtendedHttpDependencies) =>
     (
       _context: http.RequestContext,
       _request: http.routeHandler.Request,
@@ -81,7 +114,7 @@ const createRoutes = (): mstsExpress.ExpressRouteDefinition[] => {
       data: { message: 'Hello, world!' },
     });
 
-  const handleParsedRequest = (_dependencies: http.Dependencies) =>
+  const handleParsedRequest = (_dependencies: ExtendedHttpDependencies) =>
     async (
       _context: http.RequestContext,
       _request: ParsedRequest,
@@ -90,13 +123,13 @@ const createRoutes = (): mstsExpress.ExpressRouteDefinition[] => {
       data: { message: 'Hello, world!' },
     });
 
-  const getHandler: http.routeHandler.RouteHandler = http.routeHandler.create(
+  const getHandler: http.routeHandler.RouteHandler<ExtendedHttpDependencies> = http.routeHandler.create(
     parseRequest,
     handleParsedRequest,
   );
 
   // Construct a route for a GET route
-  const getRoute: mstsExpress.ExpressRouteDefinition = {
+  const getRoute: mstsExpress.ExpressRouteDefinition<ExtendedHttpDependencies> = {
     path: '/',
     method: http.HttpMethod.GET,
     middleware: [getMiddleware],
@@ -106,9 +139,9 @@ const createRoutes = (): mstsExpress.ExpressRouteDefinition[] => {
   return [getRoute];
 };
 
-const createHttpConfig = (routes: mstsExpress.ExpressRouteDefinition[]): http.config.HttpConfig => {
+const createHttpConfig = (routes: mstsExpress.ExpressRouteDefinition<ExtendedHttpDependencies>[]): http.config.HttpConfig<ExtendedHttpDependencies> => {
   // Construct the HTTP server configuration
-  const httpConfig: http.config.HttpConfig = {
+  const httpConfig: http.config.HttpConfig<ExtendedHttpDependencies> = {
     host: 'localhost',
     port: 3000,
     logging: {
@@ -137,7 +170,7 @@ const createLoggingConfig = (): logging.config.LoggingConfig => {
   return loggingConfig;
 };
 
-const createEventConsumers = (): Record<string, mstsConsumer.KafkaConsumerConfig> => ({
+const createEventConsumers = (): Record<string, mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>> => ({
   kafkaConsumer: {
     clientId: 'kafka-consumer',
     brokers: ['localhost:9092'],
@@ -146,7 +179,7 @@ const createEventConsumers = (): Record<string, mstsConsumer.KafkaConsumerConfig
       topics: ['test-topic'],
     },
     runConfig: {
-      eachMessage: (dependencies: messaging.consumer.Dependencies) => 
+      eachMessage: (dependencies: ExtendedEventConsumerDependencies) => 
         async (message) => {
           dependencies.observabilityService.emit({
             eventType: observability.EventType.READ,
@@ -176,25 +209,22 @@ const createEventProducers = (): Record<string, mstsProducer.KafkaProducerConfig
 });
 
 const createMicroserviceConfig = (
-  httpConfig: http.config.HttpConfig,
+  databaseConfig: DatabaseConfig,
+  httpConfig: http.config.HttpConfig<ExtendedHttpDependencies>,
   loggingConfig: logging.config.LoggingConfig,
-  eventConsumers: Record<string, mstsConsumer.KafkaConsumerConfig>,
+  eventConsumers: Record<string, mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>>,
   eventProducers: Record<string, mstsProducer.KafkaProducerConfig>,
-): microservice.MicroserviceConfig<mstsConsumer.KafkaConsumerConfig, mstsProducer.KafkaProducerConfig> => {
-  // Construct the microservice configuration
-  const config: microservice.MicroserviceConfig<mstsConsumer.KafkaConsumerConfig, mstsProducer.KafkaProducerConfig> = {
-    http: httpConfig,
-    logging: loggingConfig,
-    eventConsumers,
-    eventProducers,
-  };
-  return config;
-};
-
+): ExtendedMicroserviceConfig => ({
+  database: databaseConfig,
+  http: httpConfig,
+  logging: loggingConfig,
+  eventConsumers,
+  eventProducers,
+});
 
 export const resolveMicroservice = (
   app: express.Application,
-  config: microservice.MicroserviceConfig<mstsConsumer.KafkaConsumerConfig, mstsProducer.KafkaProducerConfig>,
+  config: ExtendedMicroserviceConfig,
 ): microservice.Microservice => {
   // Construct a function that extracts request context from the request
   const extractRequestContext = (req: express.Request): Record<string, unknown> => ({
@@ -232,25 +262,34 @@ export const resolveMicroservice = (
     kafkaProducer: kafkaProducerProvider,
   });
 
+  // Construct the database provider
+  const databaseProvider = createDatabaseProvider(config.database);
+
   // Construct the observability service provider
   const observabilityProvider = mstsObservability.createProvider();
 
   // Construct the microservice provider
-  const onStart = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
-  const onStop = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
-  const microserviceProvider = microservice.createProvider(
-    onStart,
-    onStop,
-  );
-  const container = createContainer<microservice.Dependencies & { microservice: microservice.Microservice }>();
+  const microserviceProvider: di.Provider<ExtendedMicroserviceDependencies, microservice.Microservice> =
+    microservice.createProvider<ExtendedMicroserviceDependencies>(
+      async (dependencies: ExtendedMicroserviceDependencies) => {
+        await dependencies.database.initialize();
+        return true;
+      },
+      async (dependencies: ExtendedMicroserviceDependencies) => {
+        await dependencies.database.shutdown();
+        return true;
+      },
+    );
   
   // Register providers
+  const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microservice.Microservice }>();
   container.register({
     logger: asFunction(loggingProvider).singleton(),
     httpServer: asFunction(httpProvider).singleton(),
     eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
     eventProducers: asFunction(kafkaProducersProvider).singleton(),
     observabilityService: asFunction(observabilityProvider).singleton(),
+    database: asFunction(databaseProvider).singleton(),
     microservice: asFunction(microserviceProvider).singleton(),
   });
   
@@ -261,14 +300,14 @@ export const resolveMicroservice = (
 const main = async (): Promise<void> => {
   const app = createApp();
   const routes = createRoutes();
+  const databaseConfig = createDatabaseConfig();
   const httpConfig = createHttpConfig(routes);
   const loggingConfig = createLoggingConfig();
   const eventConsumers = createEventConsumers();
   const eventProducers = createEventProducers();
-  const microserviceConfig = createMicroserviceConfig(httpConfig, loggingConfig, eventConsumers, eventProducers);
+  const microserviceConfig = createMicroserviceConfig(databaseConfig, httpConfig, loggingConfig, eventConsumers, eventProducers);
   const service = resolveMicroservice(app, microserviceConfig);
   await service.start();
 };
 
 main();
-```
