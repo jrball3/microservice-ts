@@ -4,7 +4,6 @@ import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
-import { asFunction, createContainer } from 'awilix';
 import express from 'express';
 import { Consumer, Kafka, Producer } from 'kafkajs';
 import sinon from 'sinon';
@@ -309,21 +308,22 @@ describe('Microservice', () => {
     });
     const databaseProvider = createDatabaseProvider(config.database);
     const observabilityProvider = mstsObservability.createProvider();
-    const microserviceProvider = microserviceNS.createProvider(
-      () => Promise.resolve(true),
-      () => Promise.resolve(true),
+    const onStarted = (_dependencies: microserviceNS.Dependencies): Promise<boolean> => Promise.resolve(true);
+    const onStopped = (_dependencies: microserviceNS.Dependencies): Promise<boolean> => Promise.resolve(true);
+    microservice = microserviceNS.createMicroservice<ExtendedMicroserviceDependencies>(
+      {
+        onStarted,
+        onStopped,
+      },
+      {
+        database: databaseProvider,
+        logger: loggingProvider,
+        httpServer: httpProvider,
+        eventConsumers: kafkaConsumersProvider,
+        eventProducers: kafkaProducersProvider,
+        observabilityService: observabilityProvider,
+      },
     );
-    const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microserviceNS.Microservice }>();
-    container.register({
-      logger: asFunction(loggingProvider).singleton(),
-      httpServer: asFunction(httpProvider).singleton(),
-      eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
-      eventProducers: asFunction(kafkaProducersProvider).singleton(),
-      microservice: asFunction(microserviceProvider).singleton(),
-      observabilityService: asFunction(observabilityProvider).singleton(),
-      database: asFunction(databaseProvider).singleton(),
-    });
-    microservice = container.resolve<microserviceNS.Microservice>('microservice');
     await microservice.start();
   });
 

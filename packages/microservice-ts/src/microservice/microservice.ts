@@ -1,3 +1,4 @@
+import { asFunction, createContainer } from 'awilix';
 import * as di from '../di';
 import * as observability from '../observability';
 import { Dependencies } from './dependencies';
@@ -10,13 +11,17 @@ export type Microservice = {
   stop: () => Promise<boolean>;
 };
 
+export type MicroserviceLifecycle<D extends Dependencies> = {
+  onStarted: (dependencies: D) => Promise<boolean>;
+  onStopped: (dependencies: D) => Promise<boolean>;
+};
+
 /**
  * Creates a microservice provider  
  * @returns A microservice provider
  */
-export const createProvider = <D extends Dependencies = Dependencies>(
-  onStart: (dependencies: D) => Promise<boolean>,
-  onStop: (dependencies: D) => Promise<boolean>,
+const createProvider = <D extends Dependencies = Dependencies>(
+  lifecycleConfig: MicroserviceLifecycle<D>,
 ): di.Provider<D, Microservice> => {
   return (dependencies: D): Microservice => {
     const { httpServer, logger, eventConsumers, eventProducers, observabilityService } = dependencies;
@@ -51,7 +56,7 @@ export const createProvider = <D extends Dependencies = Dependencies>(
             await producer.connect();
           }
         }
-        return onStart(dependencies);
+        return lifecycleConfig.onStarted(dependencies);
       },
       stop: async (): Promise<boolean> => {
         if (httpServer) {
@@ -68,8 +73,33 @@ export const createProvider = <D extends Dependencies = Dependencies>(
             await producer.disconnect();
           }
         }
-        return onStop(dependencies);
+        return lifecycleConfig.onStopped(dependencies);
       },
     };
   };
+};
+
+/**
+ * Creates a microservice
+ * @param lifecycleConfig The microservice lifecycle config
+ * @param dependencyProviders The dependency providers
+ * @returns A microservice
+ */
+export const createMicroservice = <D extends Dependencies = Dependencies>(
+  lifecycleConfig: MicroserviceLifecycle<D>,
+  dependencyProviders: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [K in keyof D]: di.Provider<any, unknown>;
+  },
+): Microservice => {
+  const container = createContainer<D>();
+  
+  Object.entries(dependencyProviders).forEach(([key, provider]) => {
+    container.register(key, asFunction(provider).singleton());
+  });
+
+  // Use Awilix to resolve all dependencies at once
+  const deps = container.cradle;
+
+  return createProvider(lifecycleConfig)(deps);
 };

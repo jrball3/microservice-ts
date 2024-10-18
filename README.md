@@ -21,7 +21,6 @@ Microservice-TS is a declarative, functional library enabling agile creation of 
 ## Example
 
 ```typescript
-import { asFunction, createContainer } from 'awilix';
 import express from 'express';
 import { http, logging, messaging, microservice, observability } from '@jrball3/microservice-ts';
 import * as mstsExpress from '@jrball3/microservice-ts-http-express';
@@ -235,27 +234,21 @@ export const resolveMicroservice = (
   // Construct the observability service provider
   const observabilityProvider = mstsObservability.createProvider();
 
-  // Construct the microservice provider
+  // Construct the microservice
   const onStart = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
   const onStop = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
-  const microserviceProvider = microservice.createProvider(
+
+  return microservice.createMicroservice(
+    {
+      logger: loggingProvider,
+      httpServer: httpProvider,
+      eventConsumers: kafkaConsumersProvider,
+      eventProducers: kafkaProducersProvider,
+      observabilityService: observabilityProvider,
+    },
     onStart,
     onStop,
   );
-  const container = createContainer<microservice.Dependencies & { microservice: microservice.Microservice }>();
-  
-  // Register providers
-  container.register({
-    logger: asFunction(loggingProvider).singleton(),
-    httpServer: asFunction(httpProvider).singleton(),
-    eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
-    eventProducers: asFunction(kafkaProducersProvider).singleton(),
-    observabilityService: asFunction(observabilityProvider).singleton(),
-    microservice: asFunction(microserviceProvider).singleton(),
-  });
-  
-  // Resolve the microservice
-  return container.resolve<microservice.Microservice>('microservice');
 };
 
 const main = async (): Promise<void> => {

@@ -1,5 +1,4 @@
 import express from 'express';
-import { createContainer, asFunction } from 'awilix';
 import { di, http, logging, microservice, messaging, observability } from '@jrball3/microservice-ts';
 import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
@@ -268,33 +267,30 @@ export const resolveMicroservice = (
   // Construct the observability service provider
   const observabilityProvider = mstsObservability.createProvider();
 
-  // Construct the microservice provider
-  const microserviceProvider: di.Provider<ExtendedMicroserviceDependencies, microservice.Microservice> =
-    microservice.createProvider<ExtendedMicroserviceDependencies>(
-      async (dependencies: ExtendedMicroserviceDependencies) => {
-        await dependencies.database.initialize();
-        return true;
-      },
-      async (dependencies: ExtendedMicroserviceDependencies) => {
-        await dependencies.database.shutdown();
-        return true;
-      },
-    );
-  
-  // Register providers
-  const container = createContainer<ExtendedMicroserviceDependencies & { microservice: microservice.Microservice }>();
-  container.register({
-    logger: asFunction(loggingProvider).singleton(),
-    httpServer: asFunction(httpProvider).singleton(),
-    eventConsumers: asFunction(kafkaConsumersProvider).singleton(),
-    eventProducers: asFunction(kafkaProducersProvider).singleton(),
-    observabilityService: asFunction(observabilityProvider).singleton(),
-    database: asFunction(databaseProvider).singleton(),
-    microservice: asFunction(microserviceProvider).singleton(),
-  });
-  
-  // Resolve the microservice
-  return container.resolve<microservice.Microservice>('microservice');
+  // Construct the microservice
+  const onStarted = async (dependencies: ExtendedMicroserviceDependencies): Promise<boolean> => {
+    await dependencies.database.initialize();
+    return true;
+  };
+  const onStopped = async (dependencies: ExtendedMicroserviceDependencies): Promise<boolean> => {
+    await dependencies.database.shutdown();
+    return true;
+  };
+
+  return microservice.createMicroservice<ExtendedMicroserviceDependencies>(
+    { 
+      onStarted,
+      onStopped,
+    },
+    {
+      database: databaseProvider,
+      logger: loggingProvider,
+      httpServer: httpProvider,
+      eventConsumers: kafkaConsumersProvider,
+      eventProducers: kafkaProducersProvider,
+      observabilityService: observabilityProvider,
+    },
+  );
 };
 
 const main = async (): Promise<void> => {

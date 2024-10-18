@@ -2,7 +2,9 @@
   "name": "@jrball3/microservice-ts-http-express",
   "version": "0.0.1",
   "dependencies": {
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "express": "4.21.0",
+    "@jrball3/microservice-ts": "0.0.1"
   },
   "type": "commonjs",
   "main": "./dist/index.js",
