@@ -235,10 +235,14 @@ export const resolveMicroservice = (
   const observabilityProvider = mstsObservability.createProvider();
 
   // Construct the microservice
-  const onStart = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
-  const onStop = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
+  const onStarted = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
+  const onStopped = (_dependencies: microservice.Dependencies): Promise<boolean> => Promise.resolve(true);
 
-  return microservice.createMicroservice(
+  return microservice.createMicroservice<microservice.Dependencies>(
+    {
+      onStarted,
+      onStopped,
+    },
     {
       logger: loggingProvider,
       httpServer: httpProvider,
@@ -246,8 +250,6 @@ export const resolveMicroservice = (
       eventProducers: kafkaProducersProvider,
       observabilityService: observabilityProvider,
     },
-    onStart,
-    onStop,
   );
 };
 
