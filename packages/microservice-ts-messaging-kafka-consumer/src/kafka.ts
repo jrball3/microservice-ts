@@ -1,6 +1,6 @@
-import { Consumer, ConsumerConfig, ConsumerRunConfig, ConsumerSubscribeTopics, EachBatchPayload, EachMessagePayload, Kafka, KafkaConfig } from 'kafkajs';
-import { fromConsumer } from './utils';
 import { di, messaging } from '@jrball3/microservice-ts';
+import { Consumer, ConsumerConfig, ConsumerRunConfig, EachBatchPayload, EachMessagePayload, Kafka, KafkaConfig } from 'kafkajs';
+import { fromConsumer } from './utils';
 
 /**
  * The wrapped each batch handler
@@ -29,13 +29,10 @@ export type WrappedConsumerRunConfig<D extends messaging.consumer.Dependencies =
 /**
  * The Kafka consumer configuration
  */
-export type KafkaConsumerConfig<D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies> = {
-  clientId: string;
-  brokers: string[];
-  groupId: string;
-  subscribeTopics: ConsumerSubscribeTopics,
-  runConfig: WrappedConsumerRunConfig<D>;
-};
+export type KafkaConsumerConfig<D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies> =
+  Omit<ConsumerConfig, 'runConfig'> & {
+    runConfig: WrappedConsumerRunConfig<D>;
+  };
 
 /**
  * The Kafka consumer
@@ -44,7 +41,13 @@ export interface KafkaConsumer extends messaging.consumer.EventConsumer {
   consumer: Consumer;
 }
 
-
+const createConsumer = (
+  kafkaConfig: KafkaConfig,
+  consumerConfig: ConsumerConfig,
+): Consumer => {
+  const kafka = new Kafka(kafkaConfig);
+  return kafka.consumer(consumerConfig);
+}
 
 /**
  * Creates a Kafka consumer provider
@@ -52,19 +55,15 @@ export interface KafkaConsumer extends messaging.consumer.EventConsumer {
  * @returns A Kafka consumer provider
  */
 export const createProvider = <D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies>(
-  config: KafkaConsumerConfig<D>,
+  kafkaConfig: KafkaConfig,
+  consumerConfig: KafkaConsumerConfig<D>,
+  consumerFactory?: (kafkaConfig: KafkaConfig, consumerConfig: ConsumerConfig) => Consumer,
 ): di.Provider<D, KafkaConsumer> =>
     (dependencies: D): KafkaConsumer => {
-      const kafkaConfig: KafkaConfig = {
-        clientId: config.clientId,
-        brokers: config.brokers,
-      };
-      const consumerConfig: ConsumerConfig = {
-        groupId: config.groupId,
-      };
-      const kafka = new Kafka(kafkaConfig);
-      const consumer = kafka.consumer(consumerConfig);
-      return fromConsumer(dependencies)(config, consumer);
+      const consumer = consumerFactory
+          ? consumerFactory(kafkaConfig, consumerConfig)
+          : createConsumer(kafkaConfig, consumerConfig);
+      return fromConsumer(dependencies)(consumerConfig, consumer);
     };
 
 /**
