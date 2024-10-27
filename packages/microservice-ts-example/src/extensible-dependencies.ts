@@ -1,10 +1,11 @@
-import express from 'express';
-import { di, http, logging, microservice, messaging, observability } from '@jrball3/microservice-ts';
+import { di, http, logging, messaging, microservice, observability } from '@jrball3/microservice-ts';
 import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
+import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-redis';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
+import express from 'express';
 
 type User = {
   id: string;
@@ -43,14 +44,16 @@ type ExtendedDependencies = {
 
 type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 
-type ExtendedMicroserviceDependencies = microservice.Dependencies & ExtendedDependencies;
+type ExtendedMicroserviceDependencies = microservice.Dependencies<mstsRetryDlq.QueueConfig> & ExtendedDependencies;
 
 type ExtendedEventConsumerDependencies = messaging.consumer.Dependencies & ExtendedDependencies;
 
 type ExtendedMicroserviceConfig = microservice.MicroserviceConfig<
+  ExtendedHttpDependencies,
   mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>,
   mstsProducer.KafkaProducerConfig,
-  ExtendedHttpDependencies
+  mstsRetryDlq.JobServiceConfig,
+  messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>
 > & {
   database: DatabaseConfig;
 };
@@ -170,40 +173,93 @@ const createLoggingConfig = (): logging.config.LoggingConfig => {
 };
 
 const createEventConsumers = (): Record<string, mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>> => ({
-  kafkaConsumer: {
-    clientId: 'kafka-consumer',
-    brokers: ['localhost:9092'],
-    groupId: 'kafka-group',
-    subscribeTopics: {
-      topics: ['test-topic'],
+  exampleConsumer: {
+    kafka: {
+      clientId: 'kafka-consumer',
+      brokers: ['localhost:9092'],
     },
-    runConfig: {
-      eachMessage: (dependencies: ExtendedEventConsumerDependencies) => 
-        async (message) => {
-          dependencies.observabilityService.emit({
-            eventType: observability.EventType.READ,
-            eventName: 'event.consumer.message.read',
-            eventSeverity: observability.eventSeverity.EventSeverity.INFO,
-            eventScope: 'event.consumer',
-            eventTimestamp: new Date(),
-            eventData: {
-              message,
-            },
+    consumer: {
+      groupId: 'kafka-group',
+      subscribeTopics: {
+        topics: ['test-topic'],
+      },
+      runConfig: {
+        eachMessage: (dependencies: ExtendedEventConsumerDependencies) => 
+          async (message) => {
+            dependencies.observabilityService.emit({
+              eventType: observability.EventType.READ,
+              eventName: 'event.consumer.message.read',
+              eventSeverity: observability.eventSeverity.EventSeverity.INFO,
+              eventScope: 'event.consumer',
+              eventTimestamp: new Date(),
+              eventData: {
+                message,
+              },
           });
         },
+      },
     },
   },
 });
 
 const createEventProducers = (): Record<string, mstsProducer.KafkaProducerConfig> => ({
   kafkaProducer: {
-    config: {
+    kafka: {
       clientId: 'kafka-producer',
       brokers: ['localhost:9092'],
     },
-    producerConfig: {
+    producer: {
       allowAutoTopicCreation: true,
     },
+  },
+});
+
+const createJobServiceConfig = (): mstsRetryDlq.JobServiceConfig => ({
+  redis: {
+    host: 'localhost',
+    port: 6379,
+  },
+});
+
+const createRetryDlqConfig = (): Record<string, messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>> => ({
+  exampleConsumerDlq: {
+    identifier: {
+      topic: 'test-retry-dlq',
+      consumerGroup: 'test-consumer-group',
+    },
+    attempts: 3,
+    handler: (dependencies: messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>) =>
+      async (message: any) => {
+        dependencies.observabilityService.emit({
+        eventType: observability.EventType.READ,
+        eventName: 'event.consumer.message.read',
+        eventSeverity: observability.eventSeverity.EventSeverity.INFO,
+        eventScope: 'event.consumer',
+        eventTimestamp: new Date(),
+        eventData: {
+          message,
+        },
+      });
+    },
+  },
+  exampleProducerDlq: {
+    identifier: {
+      producer: 'test-producer',
+    },
+    attempts: 3,
+    handler: (dependencies: messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>) =>
+      async (message: any) => {
+        dependencies.observabilityService.emit({
+          eventType: observability.EventType.WRITE,
+          eventName: 'event.producer.message.write',
+          eventSeverity: observability.eventSeverity.EventSeverity.INFO,
+          eventScope: 'event.producer',
+          eventTimestamp: new Date(),
+          eventData: {
+            message,
+          },
+        });
+      },
   },
 });
 
@@ -213,12 +269,16 @@ const createMicroserviceConfig = (
   loggingConfig: logging.config.LoggingConfig,
   eventConsumers: Record<string, mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>>,
   eventProducers: Record<string, mstsProducer.KafkaProducerConfig>,
+  jobServiceConfig: mstsRetryDlq.JobServiceConfig,
+  retryDlqConfig: Record<string, messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>>,
 ): ExtendedMicroserviceConfig => ({
   database: databaseConfig,
-  http: httpConfig,
+  http: httpConfig, 
   logging: loggingConfig,
   eventConsumers,
   eventProducers,
+  jobService: jobServiceConfig,
+  retryDlq: retryDlqConfig,
 });
 
 export const resolveMicroservice = (
@@ -267,6 +327,12 @@ export const resolveMicroservice = (
   // Construct the observability service provider
   const observabilityProvider = mstsObservability.createProvider();
 
+  // Construct the job service provider
+  const jobServiceProvider = mstsRetryDlq.createJobServiceProvider(config.jobService);
+
+  // Construct the retry dlq service provider
+  const retryDlqProvider = mstsRetryDlq.createRetryDlqServiceProvider(config.retryDlq);
+
   // Construct the microservice
   const onStarted = async (dependencies: ExtendedMicroserviceDependencies): Promise<boolean> => {
     await dependencies.database.initialize();
@@ -277,7 +343,7 @@ export const resolveMicroservice = (
     return true;
   };
 
-  return microservice.createMicroservice<ExtendedMicroserviceDependencies>(
+  return microservice.createMicroservice<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, ExtendedMicroserviceDependencies>(
     { 
       onStarted,
       onStopped,
@@ -289,6 +355,8 @@ export const resolveMicroservice = (
       eventConsumers: kafkaConsumersProvider,
       eventProducers: kafkaProducersProvider,
       observabilityService: observabilityProvider,
+      jobService: jobServiceProvider,
+      retryDlqService: retryDlqProvider,
     },
   );
 };
@@ -301,7 +369,17 @@ const main = async (): Promise<void> => {
   const loggingConfig = createLoggingConfig();
   const eventConsumers = createEventConsumers();
   const eventProducers = createEventProducers();
-  const microserviceConfig = createMicroserviceConfig(databaseConfig, httpConfig, loggingConfig, eventConsumers, eventProducers);
+  const jobServiceConfig = createJobServiceConfig();
+  const retryDlqConfig = createRetryDlqConfig();
+  const microserviceConfig = createMicroserviceConfig(
+    databaseConfig,
+    httpConfig,
+    loggingConfig,
+    eventConsumers,
+    eventProducers,
+    jobServiceConfig,
+    retryDlqConfig,
+  );
   const service = resolveMicroservice(app, microserviceConfig);
   await service.start();
 };

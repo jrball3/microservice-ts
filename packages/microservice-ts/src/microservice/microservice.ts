@@ -11,7 +11,7 @@ export type Microservice = {
   stop: () => Promise<boolean>;
 };
 
-export type MicroserviceLifecycle<D extends Dependencies> = {
+export type MicroserviceLifecycleHooks<JobQueueConfig, AddQueueResult, D extends Dependencies<JobQueueConfig, AddQueueResult>> = {
   onStarted: (dependencies: D) => Promise<boolean>;
   onStopped: (dependencies: D) => Promise<boolean>;
 };
@@ -20,30 +20,26 @@ export type MicroserviceLifecycle<D extends Dependencies> = {
  * Creates a microservice provider  
  * @returns A microservice provider
  */
-const createProvider = <D extends Dependencies = Dependencies>(
-  lifecycleConfig: MicroserviceLifecycle<D>,
+const createProvider = <JobQueueConfig, AddQueueResult, D extends Dependencies<JobQueueConfig, AddQueueResult>>(
+  hooks: MicroserviceLifecycleHooks<JobQueueConfig, AddQueueResult, D>,
 ): di.Provider<D, Microservice> => {
   return (dependencies: D): Microservice => {
-    const { httpServer, logger, eventConsumers, eventProducers, observabilityService } = dependencies;
-    if (httpServer) {
-      if (!logger) {
-        throw new Error('Logging provider is required for HTTP microservices');
-      }
-    }
+    const { httpServer, logger, eventConsumers, eventProducers, observabilityService, jobService, retryDlqService } = dependencies;
     if (observabilityService) {
       if (logger) {
         observabilityService.on({}, observability.logging.logEvent(logger));
-      }
-    }
-    if (eventConsumers && Object.keys(eventConsumers).length > 0) {
-      if (!logger) {
-        throw new Error('Logging provider is required for event consumers');
       }
     }
     return {
       start: async (): Promise<boolean> => {
         if (httpServer) {
           await httpServer.start();
+        }
+        if (jobService) {
+          await jobService.start();
+        }
+        if (retryDlqService) {
+          await retryDlqService.start();
         }
         if (eventConsumers) {
           for (const consumer of Object.values(eventConsumers)) {
@@ -56,11 +52,17 @@ const createProvider = <D extends Dependencies = Dependencies>(
             await producer.connect();
           }
         }
-        return lifecycleConfig.onStarted(dependencies);
+        return hooks.onStarted(dependencies);
       },
       stop: async (): Promise<boolean> => {
         if (httpServer) {
           await httpServer.stop();
+        }
+        if (retryDlqService) {
+          await retryDlqService.stop();
+        }
+        if (jobService) {
+          await jobService.stop();
         }
         if (eventConsumers) {
           for (const consumer of Object.values(eventConsumers)) {
@@ -73,7 +75,7 @@ const createProvider = <D extends Dependencies = Dependencies>(
             await producer.disconnect();
           }
         }
-        return lifecycleConfig.onStopped(dependencies);
+        return hooks.onStopped(dependencies);
       },
     };
   };
@@ -85,8 +87,8 @@ const createProvider = <D extends Dependencies = Dependencies>(
  * @param dependencyProviders The dependency providers
  * @returns A microservice
  */
-export const createMicroservice = <D extends Dependencies = Dependencies>(
-  lifecycleConfig: MicroserviceLifecycle<D>,
+export const createMicroservice = <JobQueueConfig, AddQueueResult, D extends Dependencies<JobQueueConfig, AddQueueResult>>(
+  lifecycleConfig: MicroserviceLifecycleHooks<JobQueueConfig, AddQueueResult, D>,
   dependencyProviders: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [K in keyof D]: di.Provider<any, unknown>;

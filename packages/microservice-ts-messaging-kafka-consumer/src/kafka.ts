@@ -1,5 +1,5 @@
 import { di, messaging } from '@jrball3/microservice-ts';
-import { Consumer, ConsumerConfig, ConsumerRunConfig, EachBatchPayload, EachMessagePayload, Kafka, KafkaConfig } from 'kafkajs';
+import { Consumer, ConsumerConfig, ConsumerRunConfig, ConsumerSubscribeTopics, EachBatchPayload, EachMessagePayload, Kafka, KafkaConfig } from 'kafkajs';
 import { fromConsumer } from './utils';
 
 /**
@@ -30,9 +30,13 @@ export type WrappedConsumerRunConfig<D extends messaging.consumer.Dependencies =
  * The Kafka consumer configuration
  */
 export type KafkaConsumerConfig<D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies> =
-  Omit<ConsumerConfig, 'runConfig'> & {
+{
+  kafka: KafkaConfig;
+  consumer: Omit<ConsumerConfig, 'runConfig'> & {
     runConfig: WrappedConsumerRunConfig<D>;
+    subscribeTopics: ConsumerSubscribeTopics;
   };
+};
 
 /**
  * The Kafka consumer
@@ -41,12 +45,11 @@ export interface KafkaConsumer extends messaging.consumer.EventConsumer {
   consumer: Consumer;
 }
 
-const createConsumer = (
-  kafkaConfig: KafkaConfig,
-  consumerConfig: ConsumerConfig,
+const createConsumer = <D extends messaging.consumer.Dependencies>(
+  config: KafkaConsumerConfig<D>,
 ): Consumer => {
-  const kafka = new Kafka(kafkaConfig);
-  return kafka.consumer(consumerConfig);
+  const kafka = new Kafka(config.kafka);
+  return kafka.consumer(config.consumer);
 }
 
 /**
@@ -55,15 +58,14 @@ const createConsumer = (
  * @returns A Kafka consumer provider
  */
 export const createProvider = <D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies>(
-  kafkaConfig: KafkaConfig,
-  consumerConfig: KafkaConsumerConfig<D>,
-  consumerFactory?: (kafkaConfig: KafkaConfig, consumerConfig: ConsumerConfig) => Consumer,
+  config: KafkaConsumerConfig<D>,
+  consumerFactory?: (config: KafkaConsumerConfig<D>) => Consumer,
 ): di.Provider<D, KafkaConsumer> =>
     (dependencies: D): KafkaConsumer => {
       const consumer = consumerFactory
-          ? consumerFactory(kafkaConfig, consumerConfig)
-          : createConsumer(kafkaConfig, consumerConfig);
-      return fromConsumer(dependencies)(consumerConfig, consumer);
+          ? consumerFactory(config)
+          : createConsumer(config);
+      return fromConsumer(dependencies)(config, consumer);
     };
 
 /**

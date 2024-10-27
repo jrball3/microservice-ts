@@ -1,7 +1,8 @@
 import { Producer } from 'kafkajs';
 import { KafkaProducer, KafkaProducerConfig } from './kafka';
 import { messaging, observability } from '@jrball3/microservice-ts';
-/**
+
+  /**
  * Creates a Kafka producer from a KafkaJS producer
  * @param dependencies - The event producer dependencies
  * @param config - The Kafka producer configuration
@@ -24,7 +25,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventTimestamp: new Date(),
               eventData: {
-                config: config,
+                clientId: config.kafka.clientId,
               },
             }),
           );
@@ -38,6 +39,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
               eventTimestamp: new Date(),
               eventData: {
+                clientId: config.kafka.clientId,
                 error: error,
               },
             }),
@@ -55,7 +57,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
             eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
             eventTimestamp: new Date(),
             eventData: {
-              config: config,
+              clientId: config.kafka.clientId,
             },
           }),
         );
@@ -82,6 +84,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventScope: 'kafka.producer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
+                clientId: config.kafka.clientId,
                 topic,
                 key,
                 value,
@@ -103,6 +106,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
               eventTimestamp: new Date(),
               eventData: {
+                clientId: config.kafka.clientId,
                 error: error,
               },
             }),
@@ -130,6 +134,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventScope: 'kafka.producer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
+                clientId: config.kafka.clientId,
                 topic,
                 key,
                 messages,
@@ -151,6 +156,7 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
               eventTimestamp: new Date(),
               eventData: {
+                clientId: config.kafka.clientId,
                 error: error,
               },
             }),

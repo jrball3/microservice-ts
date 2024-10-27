@@ -10,7 +10,8 @@
         "${relativeFile}",
         "--config",
         "${workspaceFolder}/jest.config.ts",
-        "--runInBand"
+        "--runInBand",
+        "--detectOpenHandles"
       ],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",

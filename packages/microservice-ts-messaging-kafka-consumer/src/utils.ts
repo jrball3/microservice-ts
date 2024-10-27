@@ -24,9 +24,9 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
-                clientId: config.clientId,
-                brokers: config.brokers,
-                groupId: config.groupId,
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
+                topics: config.consumer.subscribeTopics.topics,
               },
             }),
           );
@@ -39,6 +39,8 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
               eventData: {
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
                 error: error,
               },
             }),
@@ -56,9 +58,8 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
-                clientId: config.clientId,
-                brokers: config.brokers,
-                groupId: config.groupId,
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
               },
             }),
           );
@@ -70,7 +71,11 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventName: 'kafka.consumer.disconnect.error',
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
-              eventData: { error },
+              eventData: {
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
+                error,
+              },
             }),
           );
           throw error;
@@ -78,7 +83,7 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
       },
       start: async (): Promise<boolean> => {
         try {
-          await consumer.subscribe(config.subscribeTopics);
+          await consumer.subscribe(config.consumer.subscribeTopics);
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,
@@ -86,17 +91,16 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
-                clientId: config.clientId,
-                brokers: config.brokers,
-                groupId: config.groupId,
-                topics: config.subscribeTopics.topics,
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
+                topics: config.consumer.subscribeTopics.topics,
               },
             }),
           );
           await consumer.run({
-            ...config.runConfig,
-            eachBatch: config.runConfig.eachBatch?.(dependencies),
-            eachMessage: config.runConfig.eachMessage?.(dependencies),
+            ...config.consumer.runConfig,
+            eachBatch: config.consumer.runConfig.eachBatch?.(dependencies),
+            eachMessage: config.consumer.runConfig.eachMessage?.(dependencies),
           });
           observabilityService.emit(
             observability.event({
@@ -105,10 +109,8 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
-                clientId: config.clientId,
-                brokers: config.brokers,
-                groupId: config.groupId,
-                topics: config.subscribeTopics.topics,
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
               },
             }),
           );
@@ -120,7 +122,11 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventName: 'kafka.consumer.start.error',
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
-              eventData: { error },
+              eventData: { 
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
+                error,
+              },
             }),
           );
           throw error;
@@ -136,10 +142,8 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.DEBUG,
               eventData: {
-                clientId: config.clientId,
-                brokers: config.brokers,
-                groupId: config.groupId,
-                topics: config.subscribeTopics.topics,
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
               },
             }),
           );
@@ -151,7 +155,11 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
               eventName: 'kafka.consumer.stop.error',
               eventScope: 'kafka.consumer',
               eventSeverity: observability.eventSeverity.EventSeverity.ERROR,
-              eventData: { error },
+              eventData: {
+                clientId: config.kafka.clientId,
+                groupId: config.consumer.groupId,
+                error,
+              },
             }),
           );
           throw error;

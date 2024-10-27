@@ -1,4 +1,4 @@
-import { http } from '../../src';
+import { http } from '../../';
 
 describe('Route Handler', () => {
   // Mock dependencies
@@ -30,20 +30,20 @@ describe('Route Handler', () => {
   };
 
   it('should create a route handler that parses the request and handles the parsed request', async () => {
-    const mockParser = (_deps: http.Dependencies) => jest.fn((_ctx, _req) => Promise.resolve({
+    const mockParser = jest.fn((_ctx, _req) => Promise.resolve({
       parsedKey: 'parsedValue',
     }));
-    const mockHandler = (_deps: http.Dependencies) => jest.fn((_ctx, _req) => Promise.resolve({
+    const mockHandler = jest.fn((_ctx, _req) => Promise.resolve({
       statusCode: 200,
       data: { result: 'success' },
     }));
 
-    const routeHandler = http.routeHandler.create(mockParser, mockHandler);
+    const routeHandler = http.routeHandler.create(() => mockParser, () => mockHandler);
 
     const result = await routeHandler(mockDependencies)(mockContext, mockRequest);
 
-    expect(mockParser(mockDependencies)).toHaveBeenCalledWith(mockContext, mockRequest);
-    expect(mockHandler(mockDependencies)).toHaveBeenCalledWith(mockContext, { parsedKey: 'parsedValue' });
+    expect(mockParser).toHaveBeenCalledWith(mockContext, mockRequest);
+    expect(mockHandler).toHaveBeenCalledWith(mockContext, { parsedKey: 'parsedValue' });
     expect(result).toEqual({
       statusCode: 200,
       data: { result: 'success' },

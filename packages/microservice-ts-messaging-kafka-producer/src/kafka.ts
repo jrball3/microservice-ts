@@ -6,8 +6,8 @@ import { fromProducer } from './utils';
  * The Kafka producer config
  */
 export type KafkaProducerConfig = {
-  config: KafkaConfig;
-  producerConfig: ProducerConfig;
+  kafka: KafkaConfig;
+  producer: ProducerConfig;
 };
 
 /**
@@ -25,8 +25,8 @@ export const createProvider = (
   config: KafkaProducerConfig,
 ): di.Provider<messaging.producer.EventProducerDependencies, KafkaProducer> =>
   (dependencies: messaging.producer.EventProducerDependencies): KafkaProducer => {
-    const kafka = new Kafka(config.config);
-    const producer = kafka.producer(config.producerConfig);
+    const kafka = new Kafka(config.kafka);
+    const producer = kafka.producer(config.producer);
     return fromProducer(dependencies)(config, producer);
   };
 

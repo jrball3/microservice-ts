@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "files": [],
   "include": [],
-  "references": [{"path":"../microservice-ts-observability-service"},{"path":"../microservice-ts-messaging-kafka-producer"},{"path":"../microservice-ts-messaging-kafka-consumer"},{"path":"../microservice-ts-logging-console"},{"path":"../microservice-ts"},{"path":"../microservice-ts-http-express"},{"path":"./tsconfig.lib.json"},{"path":"./tsconfig.spec.json"}]
+  "references": [{"path":"../microservice-ts-observability-service"},{"path":"../microservice-ts-messaging-retry-dlq-redis"},{"path":"../microservice-ts-messaging-kafka-producer"},{"path":"../microservice-ts-messaging-kafka-consumer"},{"path":"../microservice-ts-logging-console"},{"path":"../microservice-ts-http-express"},{"path":"../microservice-ts"},{"path":"./tsconfig.lib.json"},{"path":"./tsconfig.spec.json"}]
 }
