@@ -1,5 +1,6 @@
-import * as logging from '../logging';
-
+/**
+ * Observability service dependencies
+ */
 export type Dependencies = {
-  logger: logging.Logger;
+  // TODO: Add dependencies
 };

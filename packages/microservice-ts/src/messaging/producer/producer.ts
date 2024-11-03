@@ -28,6 +28,16 @@ export type EventProducer = {
    */
   disconnect: () => Promise<boolean>;
   /**
+   * Checks if the event producer is connected
+   * @returns A boolean indicating whether the producer is connected
+   */
+  isConnected: () => boolean;
+  /**
+   * Checks if the event producer is running
+   * @returns A boolean indicating whether the producer is running
+   */
+  isRunning: () => boolean;
+  /**
    * Sends an event to the event producer
    * @param topic - The topic to send the event to
    * @param message - The message to send

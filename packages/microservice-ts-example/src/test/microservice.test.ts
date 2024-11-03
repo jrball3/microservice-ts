@@ -1,4 +1,4 @@
-import { di, http, logging,messaging, microservice as microserviceNS } from '@jrball3/microservice-ts';
+import { di, http, logging, messaging, microservice as microserviceNS } from '@jrball3/microservice-ts';
 import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
@@ -6,7 +6,7 @@ import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer
 import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-redis';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
 import express from 'express';
-import { Consumer, Kafka, Producer } from 'kafkajs';
+import { EachMessagePayload } from 'kafkajs';
 import sinon from 'sinon';
 import supertest from 'supertest';
 
@@ -44,25 +44,14 @@ type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 
 describe('Microservice', () => {
   let microservice: microserviceNS.Microservice;
-
-  const mockConsumer = {
-    connect: jest.fn().mockResolvedValue(undefined),
-    disconnect: jest.fn().mockResolvedValue(undefined),
-    subscribe: jest.fn().mockResolvedValue(undefined),
-    run: jest.fn().mockResolvedValue(undefined),
-    stop: jest.fn().mockResolvedValue(undefined),
+  let kafkaConsumer: messaging.consumer.EventConsumer;
+  let consumerHandlerStub = sinon.stub().resolves();
+  let consumerHandler: mstsConsumer.WrappedEachMessageHandler<messaging.consumer.Dependencies> = (
+    dependencies: messaging.consumer.Dependencies,
+  ) => async (payload): Promise<void> => {
+    consumerHandlerStub(dependencies, payload);
   };
-
-  const mockProducer = {
-    connect: jest.fn().mockResolvedValue(undefined),
-    disconnect: jest.fn().mockResolvedValue(undefined),
-    send: jest.fn().mockResolvedValue(undefined),
-  };
-
-  beforeAll(() => {
-    jest.spyOn(Kafka.prototype, 'consumer').mockReturnValue(mockConsumer as unknown as Consumer);
-    jest.spyOn(Kafka.prototype, 'producer').mockReturnValue(mockProducer as unknown as Producer);
-  });
+  let kafkaProducer: messaging.producer.EventProducer;
 
   beforeAll(async () => {
     const routes: mstsExpress.ExpressRouteDefinition<ExtendedHttpDependencies>[] = [
@@ -285,13 +274,13 @@ describe('Microservice', () => {
         exampleConsumer: {
           kafka: {
             clientId: 'my-app',
-            brokers: ['localhost:9092'],
+            brokers: ['localhost:29092'],
           },
           consumer: {
             groupId: 'my-group',
             subscribeTopics: { topics: ['my-topic'] },
             runConfig: {
-              eachMessage: sinon.stub().resolves(true),
+              eachMessage: consumerHandler,
             },
           },
         },
@@ -300,7 +289,7 @@ describe('Microservice', () => {
         exampleProducer: {
           kafka: {
             clientId: 'my-app',
-            brokers: ['localhost:9092'],
+            brokers: ['localhost:29092'],
           },
           producer: {},
         },
@@ -356,7 +345,11 @@ describe('Microservice', () => {
     const jobServiceProvider = mstsRetryDlq.createJobServiceProvider(config.jobService);
     const retryDlqProvider = mstsRetryDlq.createRetryDlqServiceProvider(config.retryDlq);
 
-    const onStarted = (_dependencies: microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>): Promise<boolean> => Promise.resolve(true);
+    const onStarted = (deps: microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>): Promise<boolean> => {
+      kafkaConsumer = deps.eventConsumers!.exampleConsumer
+      kafkaProducer = deps.eventProducers!.exampleProducer;
+      return Promise.resolve(true);
+    }
     const onStopped = (_dependencies: microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>): Promise<boolean> => Promise.resolve(true);
     microservice = microserviceNS.createMicroservice<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, ExtendedMicroserviceDependencies>(
       {
@@ -379,15 +372,33 @@ describe('Microservice', () => {
 
   afterAll(async () => {
     await microservice.stop();
-    expect(mockConsumer.stop).toHaveBeenCalledTimes(1);
-    expect(mockConsumer.disconnect).toHaveBeenCalledTimes(1);
-    expect(mockProducer.disconnect).toHaveBeenCalledTimes(1);
-    jest.restoreAllMocks();
   });
 
   it('connects and subscribes to Kafka topic', async () => {
-    expect(mockConsumer.connect).toHaveBeenCalledTimes(1);
-    expect(mockConsumer.subscribe).toHaveBeenCalledTimes(1);
+    expect(kafkaConsumer.isConnected()).toBe(true);
+    expect(kafkaConsumer.isRunning()).toBe(true);
+  });
+
+  it('sends and receives messages to/from Kafka topic', async () => {
+    const result = await kafkaProducer.send(
+      'my-topic',
+      JSON.stringify({ message: 'Hello, world!' }),
+    );
+    expect(result.success).toBe(true);
+    // wait a second for the message to be processed
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(consumerHandlerStub.called).toBe(true);
+    const call = consumerHandlerStub.getCall(0);
+    const dependencies = call.args[0] as messaging.consumer.Dependencies;
+    expect(dependencies.retryDlqService).toBeDefined();
+    expect(dependencies.observabilityService).toBeDefined();
+    const payload = call.args[1] as EachMessagePayload;
+    expect(payload.message.value).toEqual(Buffer.from(JSON.stringify({ message: 'Hello, world!' })));
+  });
+
+  it('connects and prepares to produce to Kafka topic', async () => {
+    expect(kafkaProducer.isConnected()).toBe(true);
+    expect(kafkaProducer.isRunning()).toBe(true);
   });
 
   it('get responds with Hello, world!', async () => {

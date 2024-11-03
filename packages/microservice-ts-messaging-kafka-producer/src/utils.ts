@@ -12,11 +12,23 @@ import { messaging, observability } from '@jrball3/microservice-ts';
 export const fromProducer = (dependencies: messaging.producer.EventProducerDependencies) =>
   (config: KafkaProducerConfig, producer: Producer): KafkaProducer => {
     const { observabilityService } = dependencies;
+    let isConnected = false;
+    let isRunning = false;
+    producer.on('producer.connect', () => {
+      isConnected = true;
+      isRunning = true;
+    });
+    producer.on('producer.disconnect', () => {
+      isConnected = false;
+      isRunning = false;
+    });
     return {
       producer,
       connect: async (): Promise<boolean> => {
         try {
           await producer.connect();
+          isConnected = true;
+          isRunning = true;
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,
@@ -49,6 +61,8 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
       },
       disconnect: async (): Promise<boolean> => {
         await producer.disconnect();
+        isConnected = false;
+        isRunning = false;
         observabilityService.emit(
           observability.event({
             eventType: observability.EventType.NOOP,
@@ -63,6 +77,8 @@ export const fromProducer = (dependencies: messaging.producer.EventProducerDepen
         );
         return true;
       },
+      isConnected: (): boolean => isConnected,
+      isRunning: (): boolean => isRunning,
       send: async (
         topic: string,
         message: Buffer | string,

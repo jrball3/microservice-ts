@@ -12,11 +12,18 @@ import { KafkaConsumer, KafkaConsumerConfig } from './kafka';
 export const fromConsumer = <D extends messaging.consumer.Dependencies = messaging.consumer.Dependencies>(dependencies: D) =>
   (config: KafkaConsumerConfig<D>, consumer: Consumer): KafkaConsumer => {
     const { observabilityService } = dependencies;
+    let isConnected = false;
+    let isRunning = false;
+    consumer.on('consumer.connect', () => isConnected = true);
+    consumer.on('consumer.disconnect', () => isConnected = false);
+    consumer.on('consumer.stop', () => isRunning = false);
+    consumer.on('consumer.group_join', () => isRunning = true);
     return {
       consumer,
       connect: async (): Promise<boolean> => {
         try {
           await consumer.connect();
+          isConnected = true;
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,
@@ -48,9 +55,12 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
           throw error;
         }
       },
+      isConnected: (): boolean => isConnected,
+      isRunning: (): boolean => isRunning,
       disconnect: async (): Promise<boolean> => {
         try {
           await consumer.disconnect();
+          isConnected = false;
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,
@@ -102,6 +112,7 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
             eachBatch: config.consumer.runConfig.eachBatch?.(dependencies),
             eachMessage: config.consumer.runConfig.eachMessage?.(dependencies),
           });
+          isRunning = true;
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,
@@ -135,6 +146,7 @@ export const fromConsumer = <D extends messaging.consumer.Dependencies = messagi
       stop: async (): Promise<boolean> => {
         try {
           await consumer.stop();
+          isRunning = false;
           observabilityService.emit(
             observability.event({
               eventType: observability.EventType.NOOP,

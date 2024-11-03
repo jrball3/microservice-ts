@@ -13,6 +13,16 @@ export interface EventConsumer {
    */
   disconnect: () => Promise<boolean>;
   /**
+   * Checks if the event consumer is connected
+   * @returns A boolean indicating whether the consumer is connected
+   */
+  isConnected: () => boolean;
+  /**
+   * Checks if the event consumer is running
+   * @returns A boolean indicating whether the consumer is running
+   */
+  isRunning: () => boolean;
+  /**
    * Starts the event consumer
    * @returns A promise that resolves to a boolean indicating whether the start was successful
    */
