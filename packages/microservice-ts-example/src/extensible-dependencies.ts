@@ -4,7 +4,7 @@ import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
 import * as mstsJobService from '@jrball3/microservice-ts-job-service-bullmq';
-import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-redis';
+import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-bullmq';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
 
 import express from 'express';

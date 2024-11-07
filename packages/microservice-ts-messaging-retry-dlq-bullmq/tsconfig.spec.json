@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "../../dist/out-tsc/packages/microservice-ts-messaging-retry-dlq-redis",
+    "outDir": "../../dist/out-tsc/packages/microservice-ts-messaging-retry-dlq-bullmq",
     "module": "commonjs",
     "types": [
       "jest",

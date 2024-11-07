@@ -15,7 +15,7 @@
   "include": [
     "src/**/*.ts"
   ],
-  "references": [{"path":"../microservice-ts-observability-service/tsconfig.lib.json"},{"path":"../microservice-ts-job-service-bullmq/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-retry-dlq-redis/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-kafka-producer/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-kafka-consumer/tsconfig.lib.json"},{"path":"../microservice-ts-logging-console/tsconfig.lib.json"},{"path":"../microservice-ts-http-express/tsconfig.lib.json"},{"path":"../microservice-ts/tsconfig.lib.json"}],
+  "references": [{"path":"../microservice-ts-observability-service/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-retry-dlq-bullmq/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-kafka-producer/tsconfig.lib.json"},{"path":"../microservice-ts-messaging-kafka-consumer/tsconfig.lib.json"},{"path":"../microservice-ts-logging-console/tsconfig.lib.json"},{"path":"../microservice-ts-job-service-bullmq/tsconfig.lib.json"},{"path":"../microservice-ts-http-express/tsconfig.lib.json"},{"path":"../microservice-ts/tsconfig.lib.json"}],
   "exclude": [
     "jest.config.ts",
     "src/**/*.spec.ts",

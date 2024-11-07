@@ -2,42 +2,5 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": [
-    {
-      "path": "./packages/microservice-ts"
-    },
-    {
-      "path": "./packages/microservice-ts"
-    },
-    {
-      "path": "./packages/microservice-ts-logging-console"
-    },
-    {
-      "path": "./packages/microservice-ts-http-express"
-    },
-    {
-      "path": "./packages/microservice-ts-http-express"
-    },
-    {
-      "path": "./packages/microservice-ts-http-express"
-    },
-    {
-      "path": "./packages/microservice-ts-messaging-kafka-consumer"
-    },
-    {
-      "path": "./packages/microservice-ts-messaging-kafka-producer"
-    },
-    {
-      "path": "./packages/microservice-ts-observability-service"
-    },
-    {
-      "path": "./packages/microservice-ts-example"
-    },
-    {
-      "path": "./packages/microservice-ts-messaging-retry-dlq-redis"
-    },
-    {
-      "path": "./packages/microservice-ts-job-service-bullmq"
-    }
-  ]
+  "references": [{"path":"./packages/microservice-ts"},{"path":"./packages/microservice-ts-logging-console"},{"path":"./packages/microservice-ts-http-express"},{"path":"./packages/microservice-ts-messaging-kafka-consumer"},{"path":"./packages/microservice-ts-messaging-kafka-producer"},{"path":"./packages/microservice-ts-observability-service"},{"path":"./packages/microservice-ts-example"},{"path":"./packages/microservice-ts-job-service-bullmq"},{"path":"./packages/microservice-ts-messaging-retry-dlq-bullmq"}]
 }

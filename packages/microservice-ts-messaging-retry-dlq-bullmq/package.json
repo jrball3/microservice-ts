@@ -1,5 +1,5 @@
 {
-  "name": "@jrball3/microservice-ts-messaging-retry-dlq-redis",
+  "name": "@jrball3/microservice-ts-messaging-retry-dlq-bullmq",
   "version": "0.0.1",
   "dependencies": {
     "@jrball3/microservice-ts": "^0.0.1",
