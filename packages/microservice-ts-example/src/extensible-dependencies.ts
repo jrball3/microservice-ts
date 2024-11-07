@@ -3,8 +3,10 @@ import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
+import * as mstsJobService from '@jrball3/microservice-ts-job-service-bullmq';
 import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-redis';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
+
 import express from 'express';
 
 type User = {
@@ -44,7 +46,7 @@ type ExtendedDependencies = {
 
 type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 
-type ExtendedMicroserviceDependencies = microservice.Dependencies<mstsRetryDlq.QueueConfig> & ExtendedDependencies;
+type ExtendedMicroserviceDependencies = microservice.Dependencies<mstsJobService.QueueConfig> & ExtendedDependencies;
 
 type ExtendedEventConsumerDependencies = messaging.consumer.Dependencies & ExtendedDependencies;
 
@@ -52,8 +54,8 @@ type ExtendedMicroserviceConfig = microservice.MicroserviceConfig<
   ExtendedHttpDependencies,
   mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>,
   mstsProducer.KafkaProducerConfig,
-  mstsRetryDlq.JobServiceConfig,
-  messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>
+  mstsJobService.JobServiceConfig,
+  messaging.retryDlq.RetryDlqConfig<mstsJobService.QueueConfig, mstsJobService.AddQueueResult, messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>, any>
 > & {
   database: DatabaseConfig;
 };
@@ -214,21 +216,21 @@ const createEventProducers = (): Record<string, mstsProducer.KafkaProducerConfig
   },
 });
 
-const createJobServiceConfig = (): mstsRetryDlq.JobServiceConfig => ({
+const createJobServiceConfig = (): mstsJobService.JobServiceConfig => ({
   redis: {
     host: 'localhost',
     port: 6379,
   },
 });
 
-const createRetryDlqConfig = (): Record<string, messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>> => ({
+const createRetryDlqConfig = (): Record<string, messaging.retryDlq.RetryDlqConfig<mstsJobService.QueueConfig, mstsJobService.AddQueueResult, messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>, any>> => ({
   exampleConsumerDlq: {
     identifier: {
       topic: 'test-retry-dlq',
       consumerGroup: 'test-consumer-group',
     },
     attempts: 3,
-    handler: (dependencies: messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>) =>
+    handler: (dependencies: messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>) =>
       async (message: any) => {
         dependencies.observabilityService.emit({
         eventType: observability.EventType.READ,
@@ -247,7 +249,7 @@ const createRetryDlqConfig = (): Record<string, messaging.retryDlq.RetryDlqConfi
       producer: 'test-producer',
     },
     attempts: 3,
-    handler: (dependencies: messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>) =>
+    handler: (dependencies: messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>) =>
       async (message: any) => {
         dependencies.observabilityService.emit({
           eventType: observability.EventType.WRITE,
@@ -269,8 +271,8 @@ const createMicroserviceConfig = (
   loggingConfig: logging.config.LoggingConfig,
   eventConsumers: Record<string, mstsConsumer.KafkaConsumerConfig<ExtendedEventConsumerDependencies>>,
   eventProducers: Record<string, mstsProducer.KafkaProducerConfig>,
-  jobServiceConfig: mstsRetryDlq.JobServiceConfig,
-  retryDlqConfig: Record<string, messaging.retryDlq.RetryDlqConfig<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>, any>>,
+  jobServiceConfig: mstsJobService.JobServiceConfig,
+  retryDlqConfig: Record<string, messaging.retryDlq.RetryDlqConfig<mstsJobService.QueueConfig, mstsJobService.AddQueueResult, messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>, any>>,
 ): ExtendedMicroserviceConfig => ({
   database: databaseConfig,
   http: httpConfig, 
@@ -328,7 +330,7 @@ export const resolveMicroservice = (
   const observabilityProvider = mstsObservability.createProvider();
 
   // Construct the job service provider
-  const jobServiceProvider = mstsRetryDlq.createJobServiceProvider(config.jobService);
+  const jobServiceProvider = mstsJobService.createJobServiceProvider(config.jobService);
 
   // Construct the retry dlq service provider
   const retryDlqProvider = mstsRetryDlq.createRetryDlqServiceProvider(config.retryDlq);
@@ -343,7 +345,7 @@ export const resolveMicroservice = (
     return true;
   };
 
-  return microservice.createMicroservice<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, ExtendedMicroserviceDependencies>(
+  return microservice.createMicroservice<mstsJobService.QueueConfig, mstsJobService.AddQueueResult, ExtendedMicroserviceDependencies>(
     { 
       onStarted,
       onStopped,

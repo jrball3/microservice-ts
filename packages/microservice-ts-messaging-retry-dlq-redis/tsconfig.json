@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "files": [],
   "include": [],
-  "references": [{"path":"../microservice-ts"},{"path":"./tsconfig.lib.json"},{"path":"./tsconfig.spec.json"}]
+  "references": [{"path":"../microservice-ts-job-service-bullmq"},{"path":"../microservice-ts"},{"path":"./tsconfig.lib.json"},{"path":"./tsconfig.spec.json"}]
 }

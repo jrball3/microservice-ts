@@ -1,7 +1,7 @@
 import { EventEmitter, once } from 'events';
 import { createRetryDlqServiceProvider } from '../retry-dlq';
 import { jobs, messaging, observability } from '@jrball3/microservice-ts';
-import { AddQueueResult, createJobServiceProvider, QueueConfig } from '../job-service';
+import { AddQueueResult, createJobServiceProvider, QueueConfig } from '@jrball3/microservice-ts-job-service-bullmq';
 
 describe('RetryDlqService', () => {
   let jobService: jobs.JobService<QueueConfig, AddQueueResult>;

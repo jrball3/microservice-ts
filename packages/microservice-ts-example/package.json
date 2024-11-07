@@ -4,6 +4,7 @@
   "dependencies": {
     "@jrball3/microservice-ts": "0.0.1",
     "@jrball3/microservice-ts-http-express": "^0.0.1",
+    "@jrball3/microservice-ts-job-service-bullmq": "^0.0.1",
     "@jrball3/microservice-ts-logging-console": "^0.0.1",
     "@jrball3/microservice-ts-messaging-kafka-consumer": "^0.0.1",
     "@jrball3/microservice-ts-messaging-kafka-producer": "^0.0.1",

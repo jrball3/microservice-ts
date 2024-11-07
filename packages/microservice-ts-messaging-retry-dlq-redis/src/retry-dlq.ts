@@ -1,5 +1,5 @@
 import { di, messaging, jobs } from '@jrball3/microservice-ts';
-import { AddQueueResult, QueueConfig } from './job-service';
+import { AddQueueResult, QueueConfig } from '@jrball3/microservice-ts-job-service-bullmq';
 
 const getConsumerQueueName = (topic: string, consumerGroup: string): string => `retry||consumer||${topic}||${consumerGroup}`;
 const getProducerQueueName = (producer: string): string => `retry||producer||${producer}`;

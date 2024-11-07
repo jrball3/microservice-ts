@@ -3,6 +3,7 @@ import * as mstsExpress from '@jrball3/microservice-ts-http-express';
 import * as mstsLogging from '@jrball3/microservice-ts-logging-console';
 import * as mstsConsumer from '@jrball3/microservice-ts-messaging-kafka-consumer';
 import * as mstsProducer from '@jrball3/microservice-ts-messaging-kafka-producer';
+import * as mstsJobService from '@jrball3/microservice-ts-job-service-bullmq';
 import * as mstsRetryDlq from '@jrball3/microservice-ts-messaging-retry-dlq-redis';
 import * as mstsObservability from '@jrball3/microservice-ts-observability-service';
 import express from 'express';
@@ -38,7 +39,7 @@ type ExtendedDependencies = {
   database: Database;
 };
 
-type ExtendedMicroserviceDependencies = microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult> & ExtendedDependencies;
+type ExtendedMicroserviceDependencies = microserviceNS.Dependencies<mstsJobService.QueueConfig> & ExtendedDependencies;
 
 type ExtendedHttpDependencies = http.Dependencies & ExtendedDependencies;
 
@@ -258,11 +259,11 @@ describe('Microservice', () => {
       ExtendedHttpDependencies,
       mstsConsumer.KafkaConsumerConfig,
       mstsProducer.KafkaProducerConfig,
-      mstsRetryDlq.JobServiceConfig,
+      mstsJobService.JobServiceConfig,
       messaging.retryDlq.RetryDlqConfig<
-        mstsRetryDlq.QueueConfig,
-        mstsRetryDlq.AddQueueResult,
-        messaging.retryDlq.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>,
+        mstsJobService.QueueConfig,
+        mstsJobService.AddQueueResult,
+        messaging.retryDlq.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>,
         any
       >
     > & {
@@ -342,16 +343,16 @@ describe('Microservice', () => {
     });
     const databaseProvider = createDatabaseProvider(config.database);
     const observabilityProvider = mstsObservability.createProvider();
-    const jobServiceProvider = mstsRetryDlq.createJobServiceProvider(config.jobService);
+    const jobServiceProvider = mstsJobService.createJobServiceProvider(config.jobService);
     const retryDlqProvider = mstsRetryDlq.createRetryDlqServiceProvider(config.retryDlq);
 
-    const onStarted = (deps: microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>): Promise<boolean> => {
+    const onStarted = (deps: microserviceNS.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>): Promise<boolean> => {
       kafkaConsumer = deps.eventConsumers!.exampleConsumer
       kafkaProducer = deps.eventProducers!.exampleProducer;
       return Promise.resolve(true);
     }
-    const onStopped = (_dependencies: microserviceNS.Dependencies<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult>): Promise<boolean> => Promise.resolve(true);
-    microservice = microserviceNS.createMicroservice<mstsRetryDlq.QueueConfig, mstsRetryDlq.AddQueueResult, ExtendedMicroserviceDependencies>(
+    const onStopped = (_dependencies: microserviceNS.Dependencies<mstsJobService.QueueConfig, mstsJobService.AddQueueResult>): Promise<boolean> => Promise.resolve(true);
+    microservice = microserviceNS.createMicroservice<mstsJobService.QueueConfig, mstsJobService.AddQueueResult, ExtendedMicroserviceDependencies>(
       {
         onStarted,
         onStopped,

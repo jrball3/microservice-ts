@@ -14,8 +14,8 @@
   },
   "include": [
     "src/**/*.ts"
-, "../microservice-ts-job-service/src/job-service.ts", "../microservice-ts-job-service/src/test/job-service.test.ts", "../microservice-ts-job-service-bullmq/src/job-service.ts"  ],
-  "references": [{"path":"../microservice-ts-job-service-bullmq/tsconfig.lib.json"},{"path":"../microservice-ts/tsconfig.lib.json"}],
+  ],
+  "references": [{"path":"../microservice-ts/tsconfig.lib.json"}],
   "exclude": [
     "jest.config.ts",
     "src/**/*.spec.ts",

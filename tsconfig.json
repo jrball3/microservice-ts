@@ -35,6 +35,9 @@
     },
     {
       "path": "./packages/microservice-ts-messaging-retry-dlq-redis"
+    },
+    {
+      "path": "./packages/microservice-ts-job-service-bullmq"
     }
   ]
 }
